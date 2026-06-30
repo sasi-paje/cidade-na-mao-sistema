@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  #root {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+}
+
+/* Ícones SVG herdam cor do texto corretamente */
+svg[class*="w-"] path,
+svg[class*="h-"] path,
+.icon path {
+  fill: currentColor !important;
+}
+
+svg[class*="w-"] g,
+svg[class*="h-"] g {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+.arrival-client-modal {
+  animation: arrival-client-modal-enter 180ms ease-out;
+}
+
+@keyframes arrival-client-modal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

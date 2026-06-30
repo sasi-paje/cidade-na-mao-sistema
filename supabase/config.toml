@@ -1,0 +1,29 @@
+[functions.send-email]
+verify_jwt = false
+
+[functions.send-password-reset]
+verify_jwt = false
+
+[functions.invite-user]
+verify_jwt = false
+
+[functions.consult-cnpj]
+verify_jwt = false
+
+[functions.create-route-history-table]
+verify_jwt = false
+
+[functions.enviar-email]
+verify_jwt = false
+
+[functions.register-route-arrival]
+verify_jwt = false
+
+[functions.get-route-arrival]
+verify_jwt = false
+
+[functions.send-first-access-email]
+verify_jwt = false
+
+[functions.exchange-sasi-token]
+verify_jwt = false
