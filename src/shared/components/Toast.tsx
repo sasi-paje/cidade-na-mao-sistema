@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ComponentProps } from 'react'
 import { AppIcon } from './AppIcon'
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning'
@@ -49,7 +49,7 @@ export const Toast = ({ message, type = 'success', duration = 3000, onClose, inl
         maxWidth: '400px',
       }}
     >
-      <AppIcon name={TOAST_ICONS[type] as any} size={24} color={TOAST_COLORS[type]} />
+      <AppIcon name={TOAST_ICONS[type] as ComponentProps<typeof AppIcon>['name']} size={24} color={TOAST_COLORS[type]} />
       <span
         className="flex-1 text-[14px]"
         style={{ fontFamily: 'Inter, sans-serif', color: '#2a2a2a' }}

@@ -35,8 +35,8 @@ export const inviteUser = async (data: InviteUserRequest): Promise<InviteUserRes
       message: result?.message || 'Convite enviado com sucesso',
       user_id: result?.user_id,
     }
-  } catch (e: any) {
-    return { success: false, error: e?.message || 'Erro ao convidar usuário' }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Erro ao convidar usuário' }
   }
 }
 
@@ -58,8 +58,8 @@ export const resendInvite = async (email: string): Promise<EmailServiceResponse>
       success: true,
       message: result?.message || 'Convite reenviado com sucesso',
     }
-  } catch (e: any) {
-    return { success: false, error: e?.message || 'Erro ao reenviar convite' }
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : 'Erro ao reenviar convite' }
   }
 }
 

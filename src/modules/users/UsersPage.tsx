@@ -203,7 +203,7 @@ export const UsersPage = ({
       const roleIds = (data || [])
         .map(u => u.id_user_role)
         .filter(id => id != null && String(id).trim() !== '')
-      let rolesMap: Record<string, string> = {}
+      const rolesMap: Record<string, string> = {}
 
       if (roleIds.length > 0) {
         const uniqueRoleIds = [...new Set(roleIds.map(id => String(id)))]

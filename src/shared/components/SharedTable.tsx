@@ -29,7 +29,6 @@ const BG_ZEBRA_1 = '#FFFFFF'
 const BG_ZEBRA_2 = '#F0F4F9'
 const BORDER_COLOR = '#E0E0E0'
 const HOVER_COLOR = '#E8F4FD'
-const ORANGE_ACCENT = '#e67c26'
 
 export function SharedTable<T extends { id: string | number }>({
   columns,

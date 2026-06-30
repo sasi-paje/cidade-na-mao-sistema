@@ -115,7 +115,6 @@ export const MultiSelectDropdown = ({
         {isOpen && (
           <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#0f3255] rounded-[5px] z-50 max-h-[200px] overflow-auto">
             {options.map((option) => {
-              const isSelected = selectedOptions.some(s => s.value === option.value)
               return (
                 <div
                   key={option.value}

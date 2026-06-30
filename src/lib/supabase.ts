@@ -33,8 +33,11 @@ export const getEnvironment = (): Environment => {
   return IS_TEST ? 'development' : 'production'
 }
 
+/** Builder de query encadeável com `.eq` (PostgREST filter builder). */
+type EqFilterable<T> = { eq(column: string, value: unknown): T }
+
 // Helper to add is_test filter to queries (trx_*, rel_*, master_*, stg_*)
-export const withTestFilter = (query: any, isTest: boolean = true) => {
+export const withTestFilter = <T extends EqFilterable<T>>(query: T, isTest: boolean = true): T => {
   return query.eq('is_test', isTest)
 }
 
@@ -43,7 +46,7 @@ export const withTestFilter = (query: any, isTest: boolean = true) => {
  * - PROD: filtra is_test = false
  * - DEV/TEST: sem filtro (traz todos os registros)
  */
-export const applyRefFilter = (query: any): any => {
+export const applyRefFilter = <T extends EqFilterable<T>>(query: T): T => {
   if (getEnvironment() === 'production') {
     return query.eq('is_test', false)
   }

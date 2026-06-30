@@ -1,4 +1,4 @@
-import { BannerUploadField } from './BannerUploadField'
+import { BannerUploadField } from '../../../../shared/components/BannerUploadField'
 import type { NewEventFormData, NewEventFormErrors } from './newEvent.model'
 
 interface NewEventInfoStepProps {

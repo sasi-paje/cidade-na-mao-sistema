@@ -1,5 +1,5 @@
 import { AppIcon } from './AppIcon'
-import { Tabs, TabId } from './Tabs'
+import type { TabId } from './Tabs'
 
 interface DrawerProps {
   isOpen: boolean

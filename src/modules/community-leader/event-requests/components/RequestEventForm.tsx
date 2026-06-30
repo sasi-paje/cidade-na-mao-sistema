@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { MaterialIcon } from '../../../../shared/components/MaterialIcon'
+import { BannerUploadField } from '../../../../shared/components/BannerUploadField'
 import type { Equipment } from '../../../../features/equipment'
 import type { EventRequestFlowInput } from '../../../../features/events'
-import { EventBanner } from '../../../public/events/eventVisuals'
 
 interface RequestEventFormProps {
   equipment: Equipment[]
@@ -40,7 +40,6 @@ export function RequestEventForm({
   const [capacity, setCapacity] = useState('')
   const [description, setDescription] = useState('')
   const [bannerUrl, setBannerUrl] = useState('')
-  const [bannerOpen, setBannerOpen] = useState(false)
   const [equipIds, setEquipIds] = useState<string[]>([])
   const [equipOpen, setEquipOpen] = useState(false)
 
@@ -79,29 +78,10 @@ export function RequestEventForm({
     <section className="flex flex-col gap-[14px] rounded-[12px] bg-white p-4 shadow-[0_1px_8px_rgba(0,0,0,0.06)]">
       <span className="text-[18px] font-bold text-[#0f3255]">Solicitar Evento</span>
 
-      {/* Banner */}
+      {/* Banner — input de arquivo real: no celular abre Galeria/Câmera/Arquivos */}
       <div className="flex flex-col gap-[6px]">
         <span className={fieldLabel}>Banner</span>
-        {bannerUrl.trim() ? (
-          <EventBanner src={bannerUrl} alt="Banner do evento" height={130} radius={8} />
-        ) : bannerOpen ? (
-          <input
-            autoFocus
-            value={bannerUrl}
-            onChange={(e) => setBannerUrl(e.target.value)}
-            placeholder="Cole o link da imagem (https://...)"
-            className={textInput}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setBannerOpen(true)}
-            className="flex h-[130px] flex-col items-center justify-center gap-2 rounded-[8px] border-[1.5px] border-dashed border-[#bdbdbd]"
-          >
-            <MaterialIcon name="attach_file" size={28} className="text-[#1e558b]" />
-            <span className="text-[13px] font-bold text-[#1e558b]">Clique para anexar foto</span>
-          </button>
-        )}
+        <BannerUploadField value={bannerUrl || null} onChange={(b) => setBannerUrl(b ?? '')} />
       </div>
 
       {/* Nome */}

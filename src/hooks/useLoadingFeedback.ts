@@ -67,7 +67,6 @@ export const useLoadingFeedback = (): LoadingFeedback => {
 
 export const useLoadingState = (
   isLoading: boolean,
-  minDelay = 300,
   mediumDelay = 800,
   slowDelay = 2000
 ) => {

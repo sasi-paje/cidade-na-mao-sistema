@@ -41,7 +41,6 @@ export const PageToolbar = ({
   filters = [],
   actions = [],
   back,
-  loading = false,
 }: PageToolbarProps) => {
   const hasSearch = search?.onSearch !== undefined
 

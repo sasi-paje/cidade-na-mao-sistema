@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { MaterialIcon } from '../../../../shared/components/MaterialIcon'
+import { MaterialIcon } from './MaterialIcon'
 
 interface BannerUploadFieldProps {
   value: string | null
@@ -7,7 +7,14 @@ interface BannerUploadFieldProps {
   error?: boolean
 }
 
-/** Upload de banner com preview em base64 (sem storage — apenas no estado). */
+/**
+ * Upload de banner com preview em base64 (sem storage — apenas no estado).
+ *
+ * Usa `<input type="file" accept="image/*">` sem `capture`: no celular o sistema
+ * oferece o menu nativo completo (Galeria / Câmera / Arquivos); no desktop abre
+ * o seletor de arquivos. Compartilhado por admin (criar/editar evento) e líder
+ * (solicitar evento).
+ */
 export function BannerUploadField({ value, onChange, error = false }: BannerUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 

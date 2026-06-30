@@ -1,5 +1,4 @@
 import { AppIcon } from './AppIcon'
-import { ModalFooter } from './ModalFooter'
 
 interface ModalProps {
   isOpen: boolean
@@ -53,7 +52,7 @@ export const Modal = ({
     // Verifica por nome do componente ou displayName
     const isModalFooter =
       (typeof typeName === 'object' && typeName !== null && typeObj.name === 'ModalFooter') ||
-      (typeof typeName === 'function' && (typeName as Function).name === 'ModalFooter') ||
+      (typeof typeName === 'function' && (typeName as { name?: string }).name === 'ModalFooter') ||
       (childType.props && 'leftActions' in childType.props && 'rightActions' in childType.props)
 
     if (isModalFooter) {
