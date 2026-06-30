@@ -16,7 +16,7 @@ export function RequestEventPage() {
   const handleSubmit = async (input: EventRequestFlowInput) => {
     try {
       const result = await submit(input)
-      navigate(buildPath(LEADER_ROUTES.requestedEventDetails, { id: result.event.id }))
+      navigate(buildPath(LEADER_ROUTES.requestedEventDetails, { id: result.id_event }))
     } catch {
       // erro exibido pelo formulário via prop `error`
     }

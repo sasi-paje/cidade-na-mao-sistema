@@ -10,6 +10,7 @@ export type {
 export {
   eventsService,
   createEvent,
+  requestEvent,
   adminCreateEvent,
   adminUpdateEvent,
   adminSetEventActive,

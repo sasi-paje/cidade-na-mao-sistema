@@ -1,10 +1,6 @@
 import { useCallback, useState } from 'react'
-import type { CreateEventInput, EventMaster } from '../types/event.types'
-import type { EventSlot } from '../../event-slots/types/event-slot.types'
-import type { EventEquipmentRequest } from '../../event-equipment/types/event-equipment.types'
-import { createEvent } from '../api/events.service'
-import { createEventSlot } from '../../event-slots/api/event-slots.service'
-import { requestEventEquipment } from '../../event-equipment/api/event-equipment.service'
+import type { CreateEventInput } from '../types/event.types'
+import { requestEvent, type AdminCreateEventResult } from '../api/events.service'
 
 export interface EventRequestFlowInput {
   event: CreateEventInput
@@ -12,15 +8,14 @@ export interface EventRequestFlowInput {
   equipment: { id_equipment: string; quantity: number }[]
 }
 
-export interface EventRequestFlowResult {
-  event: EventMaster
-  slot: EventSlot
-  equipment: EventEquipmentRequest[]
-}
+/** Resultado real da RPC `request_event` (id_event/id_slot são uuids reais). */
+export type EventRequestFlowResult = AdminCreateEventResult
 
 /**
- * Orquestra a solicitação de um evento pelo líder:
- *   1. createEvent → 2. createEventSlot → 3. requestEventEquipment
+ * Solicitação de evento pelo líder via RPC real `request_event`:
+ * cria master_event + slot 'pending' + equipamentos numa única transação.
+ * O tenant/usuário vêm da sessão Supabase (a RPC ignora id_tenant/id_user do
+ * front por segurança); retorna o id_event real (uuid) para navegação.
  */
 export function useEventRequestFlow() {
   const [loading, setLoading] = useState(false)
@@ -31,14 +26,19 @@ export function useEventRequestFlow() {
     setLoading(true)
     setError(null)
     try {
-      const event = await createEvent(input.event)
-      const slot = await createEventSlot({ id_event: event.id, ...input.slot })
-      const equipment = input.equipment.length
-        ? await requestEventEquipment(input.equipment.map((e) => ({ id_event: event.id, ...e })))
-        : []
-      const flowResult: EventRequestFlowResult = { event, slot, equipment }
-      setResult(flowResult)
-      return flowResult
+      const requestedAt = input.slot.requested_at
+      if (!requestedAt) throw new Error('Data/hora é obrigatória.')
+      const res = await requestEvent({
+        title: input.event.title,
+        description: input.event.description,
+        banner_url: input.event.banner_url ?? null,
+        location: input.event.location,
+        requested_at: requestedAt,
+        capacity: input.slot.capacity,
+        equipment: input.equipment,
+      })
+      setResult(res)
+      return res
     } catch (e) {
       const err = e instanceof Error ? e : new Error('Falha ao solicitar evento')
       setError(err)

@@ -102,6 +102,29 @@ export async function adminCreateEvent(input: AdminCreateEventInput): Promise<Ad
   return data as AdminCreateEventResult
 }
 
+/**
+ * Solicita um evento (LÍDER comunitário) via RPC transacional `request_event`.
+ * Cria o evento com slot 'pending' (entra na fila do admin). Identidade/tenant
+ * vêm da sessão (current_user_id/current_tenant_id + RLS); sem mock. Lança em
+ * falha — o chamador trata o erro na UI.
+ */
+export async function requestEvent(input: AdminCreateEventInput): Promise<AdminCreateEventResult> {
+  const { data, error } = await supabase.rpc('request_event', {
+    p_title: input.title,
+    p_description: input.description,
+    p_banner_url: input.banner_url,
+    p_location: input.location,
+    p_requested_at: input.requested_at,
+    p_capacity: input.capacity,
+    p_equipment_requests: input.equipment,
+  })
+  if (error) {
+    logSupabaseError('requestEvent', error)
+    throw new Error(error.message || 'Não foi possível solicitar o evento.')
+  }
+  return data as AdminCreateEventResult
+}
+
 /** Payload do admin para editar um evento (RPC admin_update_event). */
 export interface AdminUpdateEventInput {
   id_event: string

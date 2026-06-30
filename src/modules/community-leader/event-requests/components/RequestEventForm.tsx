@@ -109,10 +109,18 @@ export function RequestEventForm({
         </div>
       </div>
 
-      {/* Hora */}
+      {/* Hora — mesmo tratamento visual do campo "Dia" (container + ícone) */}
       <div className="flex flex-col gap-[6px]">
         <span className={fieldLabel}>Hora</span>
-        <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={textInput} />
+        <div className="flex h-[44px] flex-row items-center gap-2 rounded-[8px] border-[1.5px] border-[#e1e7ee] px-3 focus-within:border-[#1e558b]">
+          <MaterialIcon name="schedule" size={18} className="shrink-0 text-[#1e558b]" />
+          <input
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            className="flex-1 bg-transparent text-[14px] text-[#2a2a2a] outline-none"
+          />
+        </div>
       </div>
 
       {/* Local */}
