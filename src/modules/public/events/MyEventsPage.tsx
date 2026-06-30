@@ -37,9 +37,12 @@ function PastToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 export function MyEventsPage() {
   const navigate = useNavigate()
   const { masterUserId } = useCurrentUser()
-  const { data: attendances, loading: loadingAtt, error: errorAtt } = useMyAttendances(masterUserId ?? '')
+  const { data: attendances, loading: loadingAtt, error: errorAtt } = useMyAttendances(masterUserId)
   const { data: allEvents, loading: loadingEvents, error: errorEvents } = usePublicEvents()
-  const [showPast, setShowPast] = useState(false)
+  // Mostra todos os eventos confirmados por padrão (inclui passados); o toggle
+  // permite ocultar os que já aconteceram, evitando "Meus Eventos" vazio quando
+  // a participação é em evento que já passou.
+  const [showPast, setShowPast] = useState(true)
 
   const loading = loadingAtt || loadingEvents
   const error = errorAtt || errorEvents
@@ -47,13 +50,15 @@ export function MyEventsPage() {
   // Cruza participações (id_event + id_slot) com a view completa dos eventos.
   const confirmedKeys = new Set(attendances.map((a) => `${a.id_event}::${a.id_slot}`))
   const now = Date.now()
-  const myEvents = allEvents
-    .filter((e) => confirmedKeys.has(`${e.id_event}::${e.id_slot}`))
-    .filter((e) => {
-      if (showPast) return true
-      const t = new Date(e.requested_at).getTime()
-      return Number.isNaN(t) || t >= now
-    })
+  // Todos os eventos confirmados do usuário (sem filtro de data).
+  const confirmedAll = allEvents.filter((e) => confirmedKeys.has(`${e.id_event}::${e.id_slot}`))
+  const myEvents = confirmedAll.filter((e) => {
+    if (showPast) return true
+    const t = new Date(e.requested_at).getTime()
+    return Number.isNaN(t) || t >= now
+  })
+  // Eventos confirmados ocultos só pelo filtro "futuros" (já aconteceram).
+  const hiddenPastCount = confirmedAll.length - myEvents.length
 
   const openEvent = (event: EventFullView) => {
     navigate(buildPath(PUBLIC_ROUTES.eventDetails, { id: event.id_event }))
@@ -73,8 +78,22 @@ export function MyEventsPage() {
           <p className="py-8 text-center text-[15px] text-[#eb5757]">Não foi possível carregar seus eventos.</p>
         )}
 
-        {!loading && !error && myEvents.length === 0 && (
-          <p className="py-12 text-center text-[15px] font-bold text-[#919191]">Nenhum evento</p>
+        {!loading && !error && !masterUserId && (
+          <p className="py-12 text-center text-[15px] font-bold text-[#919191]">
+            Acesse pelo app SASI para ver seus eventos.
+          </p>
+        )}
+
+        {!loading && !error && masterUserId && myEvents.length === 0 && (
+          hiddenPastCount > 0 ? (
+            <p className="py-12 text-center text-[14px] text-[#919191]">
+              {hiddenPastCount === 1
+                ? 'Sua participação confirmada é em um evento que já aconteceu. Ative "Mostrar eventos passados" acima para vê-la.'
+                : `Suas ${hiddenPastCount} participações confirmadas são em eventos que já aconteceram. Ative "Mostrar eventos passados" acima para vê-las.`}
+            </p>
+          ) : (
+            <p className="py-12 text-center text-[15px] font-bold text-[#919191]">Nenhum evento</p>
+          )
         )}
 
         {!loading && !error && myEvents.length > 0 && (

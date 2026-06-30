@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { MaterialIcon } from '../../../shared/components/MaterialIcon'
 import { useEventById } from '../../../features/events'
 import { useEventAttendance } from '../../../features/event-attendance'
 import { useCurrentUser } from '../../../features/auth'
-import { MOCK_PUBLIC_USER_ID } from '../../../app/constants/currentUser'
 import { PUBLIC_ROUTES } from '../../../app/routes/routePaths'
 import { EventBanner, EventDateLine } from './eventVisuals'
 import { MobileDialog } from './MobileDialog'
@@ -13,17 +12,24 @@ import { MobileDialog } from './MobileDialog'
 export function PublicEventDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [modal, setModal] = useState<'confirm' | 'cancel' | null>(null)
 
+  /** Preserva o token da URL (quando presente) ao navegar entre telas mobile. */
+  const withToken = (path: string) => {
+    const token = searchParams.get('token')
+    return token ? `${path}?token=${encodeURIComponent(token)}` : path
+  }
+
   const { masterUserId, name, email } = useCurrentUser()
-  const { data: event, loading, error } = useEventById(id)
+  const { data: event, loading, error, refetch: refetchEvent } = useEventById(id)
   const {
     isConfirmed,
     mutating,
     confirm,
     cancel,
     error: attendanceError,
-  } = useEventAttendance(event?.id_event, event?.id_slot, masterUserId ?? MOCK_PUBLIC_USER_ID)
+  } = useEventAttendance(event?.id_event, event?.id_slot, masterUserId)
 
   if (loading) {
     return <p className="py-10 text-center text-[15px] text-[#919191]">Carregando evento...</p>
@@ -46,11 +52,22 @@ export function PublicEventDetailsPage() {
 
   const handleConfirm = async () => {
     setModal(null)
-    await confirm()
+    try {
+      await confirm()
+      // Sucesso (Figma 78-5298): vai para "Meus Eventos", preservando o token.
+      navigate(withToken(PUBLIC_ROUTES.myEvents), { replace: true })
+    } catch {
+      /* erro: attendanceError exibido na tela; permanece e NÃO redireciona */
+    }
   }
   const handleCancel = async () => {
     setModal(null)
-    await cancel()
+    try {
+      await cancel()
+      await refetchEvent()
+    } catch {
+      /* erro exibido via attendanceError */
+    }
   }
 
   return (
@@ -78,7 +95,15 @@ export function PublicEventDetailsPage() {
         </div>
 
         {attendanceError && (
-          <p className="text-[13px] text-[#eb5757]">Não foi possível atualizar sua participação.</p>
+          <p className="text-[13px] text-[#eb5757]">
+            {attendanceError.message || 'Não foi possível atualizar sua participação.'}
+          </p>
+        )}
+
+        {!masterUserId && (
+          <p className="rounded-[8px] bg-[#fdf3d8] px-3 py-2 text-[13px] text-[#8a6d1b]">
+            Acesse pelo app SASI para confirmar sua presença.
+          </p>
         )}
 
         <div className="mt-1 flex flex-row gap-2">
@@ -89,25 +114,26 @@ export function PublicEventDetailsPage() {
           >
             Voltar
           </button>
-          {isConfirmed ? (
-            <button
-              type="button"
-              disabled={mutating}
-              onClick={() => setModal('cancel')}
-              className="h-[46px] flex-1 rounded-[8px] bg-[#eb5757] text-[14px] font-bold text-white disabled:opacity-60"
-            >
-              Cancelar meu ingresso
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled={mutating}
-              onClick={() => setModal('confirm')}
-              className="h-[46px] flex-1 rounded-[8px] bg-[#1e558b] text-[14px] font-bold text-white disabled:opacity-60"
-            >
-              Quero participar!
-            </button>
-          )}
+          {masterUserId &&
+            (isConfirmed ? (
+              <button
+                type="button"
+                disabled={mutating}
+                onClick={() => setModal('cancel')}
+                className="h-[46px] flex-1 rounded-[8px] bg-[#eb5757] text-[14px] font-bold text-white disabled:opacity-60"
+              >
+                Cancelar meu ingresso
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={mutating}
+                onClick={() => setModal('confirm')}
+                className="h-[46px] flex-1 rounded-[8px] bg-[#1e558b] text-[14px] font-bold text-white disabled:opacity-60"
+              >
+                Quero participar!
+              </button>
+            ))}
         </div>
       </section>
 
