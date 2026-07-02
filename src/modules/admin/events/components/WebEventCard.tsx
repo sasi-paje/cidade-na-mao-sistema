@@ -14,13 +14,13 @@ export function WebEventCard({ event, onOpenInfo, onEdit }: WebEventCardProps) {
   const [imageError, setImageError] = useState(false)
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-[8px] bg-white shadow-[0_1px_4px_0_rgba(15,50,85,0.12)]">
-      <div className="relative aspect-[16/9] w-full bg-[#bdcde8]">
+    <article className="flex h-[360px] flex-col overflow-hidden rounded-[8px] bg-white shadow-[0_1px_4px_0_rgba(15,50,85,0.12)]">
+      <div className="relative h-[170px] w-full shrink-0 overflow-hidden bg-[#bdcde8]">
         {event.banner_url && !imageError ? (
           <img
             src={event.banner_url}
             alt={event.title}
-            className="h-full w-full object-cover"
+            className="block h-full w-full object-cover object-center"
             onError={() => setImageError(true)}
           />
         ) : (
@@ -32,7 +32,7 @@ export function WebEventCard({ event, onOpenInfo, onEdit }: WebEventCardProps) {
       </div>
 
       <div className="flex flex-1 flex-col p-3">
-        <h3 className="text-[16px] font-bold uppercase text-[#0f3255] leading-tight">{event.title}</h3>
+        <h3 className="line-clamp-2 text-[16px] font-bold uppercase text-[#0f3255] leading-tight">{event.title}</h3>
 
         <div className="mt-2 flex items-center gap-1.5 text-[13px] text-[#4c4c4c]">
           <MaterialIcon name="event" size={18} className="text-[#1e558b]" />
@@ -48,7 +48,7 @@ export function WebEventCard({ event, onOpenInfo, onEdit }: WebEventCardProps) {
           <EventStatusBadge status={event.slot_status} isActive={event.is_active} />
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-auto flex items-center gap-2 pt-3">
           <button
             type="button"
             onClick={() => onOpenInfo?.(event)}
