@@ -9,6 +9,8 @@ interface EditEventModalProps {
   open: boolean
   onClose: () => void
   onSaved: () => void
+  /** Toast global — usado p/ notificar inscritos após edição de evento confirmado. */
+  onNotify?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void
 }
 
 /**
@@ -16,7 +18,7 @@ interface EditEventModalProps {
  * equipamentos reais via `getEventById`) e inicializa o `EditEventForm` a partir
  * dele. Salva real via `admin_update_event` (sem mock/localStorage).
  */
-export function EditEventModal({ event, open, onClose, onSaved }: EditEventModalProps) {
+export function EditEventModal({ event, open, onClose, onSaved, onNotify }: EditEventModalProps) {
   const { data: full, loading } = useEventById(open && event ? event.id_event : undefined)
   const { data: catalog } = useEquipment()
 
@@ -39,6 +41,7 @@ export function EditEventModal({ event, open, onClose, onSaved }: EditEventModal
             catalog={catalog}
             onClose={onClose}
             onSaved={onSaved}
+            onNotify={onNotify}
           />
         )}
       </div>

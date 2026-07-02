@@ -9,6 +9,7 @@ import { WebEventCard } from '../components/WebEventCard'
 import { NewEventModal } from '../components/NewEventModal'
 import { EditEventModal } from '../components/EditEventModal'
 import { WebEventDetailsDrawer } from '../components/WebEventDetailsDrawer'
+import { useToast, ToastContainer } from '../../../../shared/components'
 
 const PAGE_SIZE = 9
 
@@ -26,6 +27,7 @@ export function WebEventsPage() {
   const [isNewEventModalOpen, setIsNewEventModalOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<EventFullView | null>(null)
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+  const { toasts, showToast, removeToast } = useToast()
 
   // Filtro combinado (frontend): data + busca por título + apenas pendentes.
   const filtered = useMemo(() => {
@@ -135,6 +137,7 @@ export function WebEventsPage() {
         open={editingEvent !== null}
         onClose={() => setEditingEvent(null)}
         onSaved={() => { void refetch() }}
+        onNotify={showToast}
       />
 
       {/* Detalhe abre como drawer SOBRE a lista (sem trocar de rota). */}
@@ -143,8 +146,11 @@ export function WebEventsPage() {
           key={selectedEventId}
           eventId={selectedEventId}
           onClose={() => { setSelectedEventId(null); void refetch() }}
+          onNotify={showToast}
         />
       )}
+
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </div>
   )
 }

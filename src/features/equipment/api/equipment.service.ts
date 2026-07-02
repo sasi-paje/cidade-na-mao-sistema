@@ -22,7 +22,7 @@ import {
 } from '../../events/mocks/event-storage.mock'
 import { seedEventMockData } from '../../events/mocks/event.mock'
 import { supabase, hasSupabaseEnv, canUseMockFallback } from '../../../lib/supabase/client'
-import { logSupabaseError } from '../../../lib/supabase/supabase-error'
+import { logSupabaseError, friendlyAdminError } from '../../../lib/supabase/supabase-error'
 
 const EQUIPMENT_TABLE = 'master_equipment'
 
@@ -127,7 +127,7 @@ export async function createEquipment(input: EquipmentInput): Promise<Equipment>
       return mapEquipmentRow(data as EquipmentRow)
     } catch (e) {
       logSupabaseError('createEquipment', e)
-      if (!canUseMockFallback()) throw e instanceof Error ? e : new Error('Não foi possível criar o equipamento.')
+      if (!canUseMockFallback()) throw new Error(friendlyAdminError(e, 'Não foi possível criar o equipamento.'))
     }
   }
   // fallback mock (dev)
@@ -157,7 +157,7 @@ export async function updateEquipment(id: string, input: EquipmentInput): Promis
       return mapEquipmentRow(data as EquipmentRow)
     } catch (e) {
       logSupabaseError('updateEquipment', e)
-      if (!canUseMockFallback()) throw e instanceof Error ? e : new Error('Não foi possível atualizar o equipamento.')
+      if (!canUseMockFallback()) throw new Error(friendlyAdminError(e, 'Não foi possível atualizar o equipamento.'))
     }
   }
   // fallback mock (dev)
@@ -187,7 +187,7 @@ export async function setEquipmentActive(id: string, isActive: boolean): Promise
       return
     } catch (e) {
       logSupabaseError('setEquipmentActive', e)
-      if (!canUseMockFallback()) throw e instanceof Error ? e : new Error('Não foi possível atualizar o equipamento.')
+      if (!canUseMockFallback()) throw new Error(friendlyAdminError(e, 'Não foi possível atualizar o equipamento.'))
     }
   }
   // fallback mock (dev)

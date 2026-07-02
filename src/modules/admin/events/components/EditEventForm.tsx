@@ -3,6 +3,8 @@ import { MaterialIcon } from '../../../../shared/components/MaterialIcon'
 import { adminUpdateEvent } from '../../../../features/events'
 import type { EventFullView } from '../../../../features/events'
 import type { Equipment } from '../../../../features/equipment'
+import { notifyEventAttendees, buildNotifyMessage } from '../../../../features/event-notifications'
+import { formatEventDay, formatEventTime } from '../../../../utils/eventDate'
 import { NewEventInfoStep } from './NewEventInfoStep'
 import { EditEventEquipmentTab, type EquipItem } from './EditEventEquipmentTab'
 import {
@@ -15,6 +17,8 @@ interface EditEventFormProps {
   catalog: Equipment[]
   onClose: () => void
   onSaved: () => void
+  /** Toast global — usado p/ notificar inscritos após edição de evento confirmado. */
+  onNotify?: (message: string, type: 'success' | 'error' | 'info' | 'warning') => void
 }
 
 type EditTab = 'info' | 'equipment'
@@ -53,7 +57,7 @@ function validate(form: NewEventFormData): NewEventFormErrors {
  * Inicializa a partir do evento completo (já com equipamentos). Sem mock.
  * Montado com `key={event.id_event}` para reinicializar a cada abertura.
  */
-export function EditEventForm({ event, catalog, onClose, onSaved }: EditEventFormProps) {
+export function EditEventForm({ event, catalog, onClose, onSaved, onNotify }: EditEventFormProps) {
   const [tab, setTab] = useState<EditTab>('info')
   const [form, setForm] = useState<NewEventFormData>(() => eventToForm(event))
   const [errors, setErrors] = useState<NewEventFormErrors>({})
@@ -84,6 +88,23 @@ export function EditEventForm({ event, catalog, onClose, onSaved }: EditEventFor
       setSaveError('Data/hora inválida.')
       return
     }
+    const newIso = dt.toISOString()
+
+    // Detecta alterações RELEVANTES (título/data/hora/local/vagas/descrição/banner)
+    // comparando com o estado original do evento. Só campos relevantes notificam.
+    const original = eventToForm(event)
+    const changes: string[] = []
+    if (form.name.trim() !== original.name.trim()) changes.push(`Novo título: ${form.name.trim()}`)
+    if (form.day !== original.day || form.time !== original.time) {
+      changes.push(`Nova data: ${formatEventDay(newIso)}`)
+      changes.push(`Novo horário: ${formatEventTime(newIso)}`)
+    }
+    if (form.location.trim() !== original.location.trim()) changes.push(`Local: ${form.location.trim()}`)
+    if (Number(form.capacity) !== Number(original.capacity)) changes.push(`Vagas: ${form.capacity}`)
+    if (form.description.trim() !== original.description.trim()) changes.push('Descrição atualizada.')
+    if ((form.banner ?? null) !== (original.banner ?? null)) changes.push('Banner atualizado.')
+    const relevantChanged = changes.length > 0
+
     setSaveError(null)
     setSaving(true)
     try {
@@ -94,11 +115,35 @@ export function EditEventForm({ event, catalog, onClose, onSaved }: EditEventFor
         description: form.description.trim(),
         banner_url: form.banner,
         location: form.location.trim(),
-        requested_at: dt.toISOString(),
+        requested_at: newIso,
         capacity: Number(form.capacity),
         equipment,
       })
       onSaved()
+      // Notifica inscritos SÓ quando o evento é confirmado e houve mudança relevante.
+      // A edição já persistiu; falha de notificação vira aviso (não desfaz o salvamento).
+      if (relevantChanged && event.slot_status === 'approved') {
+        try {
+          const result = await notifyEventAttendees({
+            id_event: event.id_event,
+            id_slot: event.id_slot,
+            change_type: 'updated',
+            event: {
+              title: form.name.trim(),
+              date: formatEventDay(newIso),
+              time: formatEventTime(newIso),
+              location: form.location.trim(),
+            },
+            changes,
+          })
+          const { text, type } = buildNotifyMessage('atualizado', result)
+          onNotify?.(text, type)
+        } catch {
+          onNotify?.('Evento atualizado, mas houve falha ao notificar os inscritos.', 'warning')
+        }
+      } else {
+        onNotify?.('Evento atualizado com sucesso.', 'success')
+      }
       onClose()
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'Não foi possível salvar o evento.')
@@ -158,6 +203,11 @@ export function EditEventForm({ event, catalog, onClose, onSaved }: EditEventFor
           <p className="mt-3 text-[13px] text-[#eb5757]">Preencha todos os campos obrigatórios.</p>
         )}
         {saveError && <p className="mt-3 text-[13px] text-[#eb5757]">{saveError}</p>}
+        {event.slot_status === 'approved' && (
+          <p className="mt-3 text-[13px] text-[#1e558b]">
+            Os inscritos confirmados serão notificados sobre as alterações deste evento.
+          </p>
+        )}
       </div>
 
       {/* Footer */}

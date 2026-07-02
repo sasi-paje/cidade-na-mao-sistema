@@ -17,6 +17,7 @@ import { Outlet, useNavigate } from 'react-router-dom'
 import { useCurrentUser } from '../../features/auth'
 import { signOut } from '../../features/auth'
 import { useSasiAuth } from '../../features/sasi-token'
+import { isWebEmbedMode } from '../../lib/supabase/client'
 import { AccessRequired } from './AccessRequired'
 
 function FullScreen({ children }: { children: React.ReactNode }) {
@@ -60,9 +61,11 @@ function AccessDenied() {
 export function ProtectedRoute({ requireAdmin = true }: { requireAdmin?: boolean }) {
   const { loading, isAuthenticated, isAdmin } = useCurrentUser()
   const sasi = useSasiAuth()
+  const embed = isWebEmbedMode()
 
   // Aguarda a resolução do contexto e/ou uma troca SASI em andamento, para não
-  // decidir o acesso antes de a sessão Supabase ser emitida.
+  // decidir o acesso antes de a sessão Supabase ser emitida. (É uma validação
+  // transitória — não é tela de login; resolve sozinha em instantes.)
   if (loading || sasi.loading) {
     return (
       <FullScreen>
@@ -72,6 +75,14 @@ export function ProtectedRoute({ requireAdmin = true }: { requireAdmin?: boolean
         </div>
       </FullScreen>
     )
+  }
+
+  // Modo espelhado (`VITE_WEB_EMBED_MODE=true`): a autenticação visual é do
+  // sistema externo — nunca bloqueamos a tela web por ausência de sessão local
+  // do SASI. As RPCs admin seguem protegidas (falham com mensagem amigável se
+  // não houver credencial válida); nada de login/redirect aqui.
+  if (embed) {
+    return <Outlet />
   }
 
   // Autorização é sempre pela sessão Supabase real (SASI é só login).

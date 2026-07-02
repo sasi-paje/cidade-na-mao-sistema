@@ -3,6 +3,8 @@ import { MaterialIcon } from '../../../../shared/components/MaterialIcon'
 import { useLockBodyScroll } from '../../../../shared/hooks/useLockBodyScroll'
 import { useEventById, adminSetEventActive } from '../../../../features/events'
 import { useEventApproval } from '../../../../features/event-approvals'
+import { notifyEventAttendees, buildNotifyMessage } from '../../../../features/event-notifications'
+import { formatEventDay, formatEventTime } from '../../../../utils/eventDate'
 import { MOCK_ADMIN_USER_ID } from '../../../../app/constants/currentUser'
 import { EventDetailsInfoTab } from './EventDetailsInfoTab'
 import { EventConfirmedPeopleTab } from './EventConfirmedPeopleTab'
@@ -14,18 +16,22 @@ import { EditEventModal } from './EditEventModal'
 type DetailTab = 'info' | 'people' | 'equipment'
 type SubModal = 'approve' | 'suggest' | null
 
+type NotifyToast = (message: string, type: 'success' | 'error' | 'info' | 'warning') => void
+
 interface WebEventDetailsDrawerProps {
   eventId: string
   onClose: () => void
+  /** Exibe toast global (sucesso/aviso das ações + notificação de inscritos). */
+  onNotify?: NotifyToast
 }
 
 /**
  * Drawer lateral de detalhe do evento (Informações/Pessoas/Equipamentos).
  * Renderizado por cima da lista (overlay) — a lista permanece montada atrás.
  */
-export function WebEventDetailsDrawer({ eventId, onClose }: WebEventDetailsDrawerProps) {
+export function WebEventDetailsDrawer({ eventId, onClose, onNotify }: WebEventDetailsDrawerProps) {
   const { data: event, loading, error, refetch } = useEventById(eventId)
-  const { approve, proposeCounter, reject, loading: acting } = useEventApproval()
+  const { approve, proposeCounter, loading: acting } = useEventApproval()
 
   const [activeTab, setActiveTab] = useState<DetailTab>('info')
   const [subModal, setSubModal] = useState<SubModal>(null)
@@ -33,43 +39,51 @@ export function WebEventDetailsDrawer({ eventId, onClose }: WebEventDetailsDrawe
   const [confirmToggle, setConfirmToggle] = useState(false)
   const [togglingActive, setTogglingActive] = useState(false)
   const [toggleError, setToggleError] = useState<string | null>(null)
-  const [rejectOpen, setRejectOpen] = useState(false)
-  const [rejectReason, setRejectReason] = useState('')
-  const [rejecting, setRejecting] = useState(false)
-  const [rejectError, setRejectError] = useState<string | null>(null)
   const [approveError, setApproveError] = useState<string | null>(null)
 
   useLockBodyScroll(true)
 
-  const handleReject = async () => {
-    if (!event) return
-    const reason = rejectReason.trim()
-    if (!reason) {
-      setRejectError('Informe o motivo da reprovação.')
-      return
-    }
-    setRejectError(null)
-    setRejecting(true)
-    try {
-      await reject(event.id_event, event.id_slot, reason)
-      setRejectOpen(false)
-      setRejectReason('')
-      await refetch()
-    } catch (e) {
-      setRejectError(e instanceof Error ? e.message : 'Falha ao reprovar o evento.')
-    } finally {
-      setRejecting(false)
-    }
-  }
-
   const handleToggleActive = async () => {
     if (!event) return
+    const wasActive = event.is_active
+    // Só evento CONFIRMADO (approved) dispara notificação de inscritos.
+    const notifyOnInactivate = wasActive && event.slot_status === 'approved'
+    const eventSnapshot = {
+      id_event: event.id_event,
+      id_slot: event.id_slot,
+      title: event.title,
+      date: formatEventDay(event.requested_at),
+      time: formatEventTime(event.requested_at),
+      location: event.location,
+    }
     setToggleError(null)
     setTogglingActive(true)
     try {
-      await adminSetEventActive(event.id_event, !event.is_active)
+      await adminSetEventActive(event.id_event, !wasActive)
       setConfirmToggle(false)
       await refetch()
+      if (notifyOnInactivate) {
+        // Inativação persistiu; notificação NÃO desfaz a ação em caso de falha.
+        try {
+          const result = await notifyEventAttendees({
+            id_event: eventSnapshot.id_event,
+            id_slot: eventSnapshot.id_slot,
+            change_type: 'inactivated',
+            event: {
+              title: eventSnapshot.title,
+              date: eventSnapshot.date,
+              time: eventSnapshot.time,
+              location: eventSnapshot.location,
+            },
+          })
+          const { text, type } = buildNotifyMessage('inativado', result)
+          onNotify?.(text, type)
+        } catch {
+          onNotify?.('Evento inativado, mas houve falha ao notificar os inscritos.', 'warning')
+        }
+      } else {
+        onNotify?.(wasActive ? 'Evento inativado com sucesso.' : 'Evento reativado com sucesso.', 'success')
+      }
     } catch (e) {
       setToggleError(e instanceof Error ? e.message : 'Falha ao atualizar o evento.')
     } finally {
@@ -176,25 +190,18 @@ export function WebEventDetailsDrawer({ eventId, onClose }: WebEventDetailsDrawe
                 {activeTab === 'equipment' && <EventRequestedEquipmentTab event={event} />}
               </div>
 
-              {/* Footer fixo — Inativar/Ativar à esquerda; ações à direita */}
+              {/*
+                Footer fixo — ações por status (usa `slot_status` code, não label):
+                  • pending  → Sugerir nova Data + Aprovar (sem Inativar/Editar/Reprovar)
+                  • demais   → Inativar/Ativar + Editar (gestão do evento já decidido)
+                Decisão p/ outros status (approved/counter_proposed/rejected/inactive):
+                tratados como o ramo de gestão — só ações seguras (toggle ativo + editar),
+                nunca aprovar/sugerir/reprovar.
+              */}
               <div className="shrink-0 border-t border-[#e2e8f0]" />
               <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 px-6 py-4">
-                <button
-                  type="button"
-                  onClick={() => { setToggleError(null); setConfirmToggle(true) }}
-                  className={[
-                    'flex h-[45px] items-center gap-1 rounded-[5px] border px-5 text-[14px] font-semibold',
-                    event.is_active
-                      ? 'border-[#eb5757] text-[#eb5757]'
-                      : 'border-[#1e8449] text-[#1e8449]',
-                  ].join(' ')}
-                >
-                  <MaterialIcon name={event.is_active ? 'block' : 'check_circle'} size={18} />
-                  {event.is_active ? 'Inativar' : 'Ativar'}
-                </button>
-
                 {event.slot_status === 'pending' ? (
-                  <div className="flex flex-wrap items-center gap-2">
+                  <>
                     <button
                       type="button"
                       onClick={() => setSubModal('suggest')}
@@ -204,28 +211,36 @@ export function WebEventDetailsDrawer({ eventId, onClose }: WebEventDetailsDrawe
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setRejectError(null); setRejectOpen(true) }}
-                      className="h-[45px] rounded-[5px] border border-[#eb5757] px-4 text-[14px] font-semibold text-[#eb5757]"
-                    >
-                      Reprovar
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => { setApproveError(null); setSubModal('approve') }}
                       className="h-[45px] rounded-[5px] bg-[#1e558b] px-6 text-[14px] font-bold text-white"
                     >
                       Aprovar
                     </button>
-                  </div>
+                  </>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => setEditing(true)}
-                    className="flex h-[45px] items-center gap-1 rounded-[5px] bg-[#1e558b] px-8 text-[14px] font-bold text-white"
-                  >
-                    <MaterialIcon name="edit" size={18} />
-                    Editar
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setToggleError(null); setConfirmToggle(true) }}
+                      className={[
+                        'flex h-[45px] items-center gap-1 rounded-[5px] border px-5 text-[14px] font-semibold',
+                        event.is_active
+                          ? 'border-[#eb5757] text-[#eb5757]'
+                          : 'border-[#1e8449] text-[#1e8449]',
+                      ].join(' ')}
+                    >
+                      <MaterialIcon name={event.is_active ? 'block' : 'check_circle'} size={18} />
+                      {event.is_active ? 'Inativar' : 'Ativar'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(true)}
+                      className="flex h-[45px] items-center gap-1 rounded-[5px] bg-[#1e558b] px-8 text-[14px] font-bold text-white"
+                    >
+                      <MaterialIcon name="edit" size={18} />
+                      Editar
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -258,46 +273,8 @@ export function WebEventDetailsDrawer({ eventId, onClose }: WebEventDetailsDrawe
         open={editing && !!event}
         onClose={() => setEditing(false)}
         onSaved={() => { void refetch() }}
+        onNotify={onNotify}
       />
-
-      {/* Reprovar evento (RPC real reject_event) — motivo obrigatório */}
-      {rejectOpen && event && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4"
-          onClick={() => { if (!rejecting) setRejectOpen(false) }}
-        >
-          <div className="w-full max-w-md rounded-[8px] bg-white p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
-            <p className="text-[15px] font-bold text-[#0f3255]">Reprovar evento</p>
-            <p className="mt-1 text-[14px] text-[#4c4c4c]">Informe o motivo da reprovação (obrigatório).</p>
-            <textarea
-              autoFocus
-              value={rejectReason}
-              onChange={(e) => { setRejectReason(e.target.value); if (rejectError) setRejectError(null) }}
-              placeholder="Motivo da reprovação"
-              className="mt-3 h-[110px] w-full resize-none rounded-[6px] border border-[#bdcde8] p-3 text-[14px] text-[#0f3255] outline-none focus:border-[#1e558b]"
-            />
-            {rejectError && <p className="mt-1 text-[13px] text-[#eb5757]">{rejectError}</p>}
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setRejectOpen(false)}
-                disabled={rejecting}
-                className="h-[40px] rounded-[6px] border border-[#0f3255] px-5 text-[14px] font-semibold text-[#0f3255] disabled:opacity-60"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleReject}
-                disabled={rejecting || rejectReason.trim().length === 0}
-                className="h-[40px] rounded-[6px] bg-[#eb5757] px-5 text-[14px] font-bold text-white disabled:opacity-60"
-              >
-                {rejecting ? 'Reprovando...' : 'Reprovar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Confirmação de ativar/inativar (RPC real admin_set_event_active) */}
       {confirmToggle && event && (
@@ -314,6 +291,11 @@ export function WebEventDetailsDrawer({ eventId, onClose }: WebEventDetailsDrawe
                 ? 'Este evento deixará de ficar ativo. Deseja continuar?'
                 : 'Este evento voltará a ficar ativo. Deseja continuar?'}
             </p>
+            {event.is_active && event.slot_status === 'approved' && (
+              <p className="mt-2 text-[13px] text-[#1e558b]">
+                Os inscritos confirmados serão notificados sobre a inativação deste evento.
+              </p>
+            )}
             {toggleError && <p className="mt-2 text-[13px] text-[#eb5757]">{toggleError}</p>}
             <div className="mt-4 flex justify-end gap-2">
               <button

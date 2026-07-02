@@ -32,3 +32,19 @@ export function hasSupabaseEnv(): boolean {
 export function canUseMockFallback(): boolean {
   return IS_TEST
 }
+
+/**
+ * Modo de integração web (`VITE_WEB_EMBED_MODE=true`): as telas `/web/*` são
+ * espelhadas dentro de um sistema externo, então NÃO exigem login próprio do
+ * SASI (sem tela de login, sem redirect, sem bloqueio por ausência de sessão).
+ *
+ * IMPORTANTE — não afrouxa segurança: as RPCs administrativas continuam
+ * exigindo `authenticated` + role admin (via RLS/`current_user_role()`). Sem
+ * credencial válida (ex.: token SASI do sistema externo na URL), as LEITURAS
+ * permitidas carregam e as AÇÕES administrativas falham com mensagem amigável
+ * (`ADMIN_ACCESS_ERROR`) — nunca com login nem sucesso falso. `service_role`
+ * jamais vai para o frontend.
+ */
+export function isWebEmbedMode(): boolean {
+  return import.meta.env.VITE_WEB_EMBED_MODE === 'true'
+}

@@ -19,7 +19,7 @@ import {
 } from '../../events/mocks/event-storage.mock'
 import { seedEventMockData } from '../../events/mocks/event.mock'
 import { supabase, hasSupabaseEnv, canUseMockFallback } from '../../../lib/supabase/client'
-import { logSupabaseError } from '../../../lib/supabase/supabase-error'
+import { logSupabaseError, friendlyAdminError } from '../../../lib/supabase/supabase-error'
 
 // Sem auth ainda: revisor padrão até a integração com perfis (Etapa 7).
 const DEFAULT_REVIEWER = 'user-admin-1'
@@ -53,7 +53,7 @@ export async function approveEvent(idEvent: string, idSlot: string): Promise<voi
       return
     } catch (e) {
       logSupabaseError('approveEvent', e)
-      if (!canUseMockFallback()) throw e instanceof Error ? e : new Error('Não foi possível aprovar o evento.')
+      if (!canUseMockFallback()) throw new Error(friendlyAdminError(e, 'Não foi possível aprovar o evento.'))
     }
   }
   // fallback mock (dev)
@@ -84,7 +84,7 @@ export async function proposeCounterDate(input: CounterProposalInput): Promise<v
       return
     } catch (e) {
       logSupabaseError('proposeCounterDate', e)
-      if (!canUseMockFallback()) throw e instanceof Error ? e : new Error('Não foi possível propor nova data.')
+      if (!canUseMockFallback()) throw new Error(friendlyAdminError(e, 'Não foi possível propor nova data.'))
     }
   }
   // fallback mock (dev)
@@ -114,7 +114,7 @@ export async function rejectEvent(idEvent: string, idSlot: string, reason: strin
       return
     } catch (e) {
       logSupabaseError('rejectEvent', e)
-      if (!canUseMockFallback()) throw e instanceof Error ? e : new Error('Não foi possível reprovar o evento.')
+      if (!canUseMockFallback()) throw new Error(friendlyAdminError(e, 'Não foi possível reprovar o evento.'))
     }
   }
   // fallback mock (dev)

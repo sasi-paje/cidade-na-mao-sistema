@@ -23,7 +23,7 @@ import { getEvents, setEvents, genId, nowIso, resolveAsync } from '../mocks/even
 import { seedEventMockData } from '../mocks/event.mock'
 import { buildEventFullView } from '../mocks/event-view.mock'
 import { supabase, hasSupabaseEnv, canUseMockFallback } from '../../../lib/supabase/client'
-import { logSupabaseError } from '../../../lib/supabase/supabase-error'
+import { logSupabaseError, friendlyAdminError } from '../../../lib/supabase/supabase-error'
 
 // View admin (security_invoker): RLS filtra por tenant/role; anon → 0 linhas.
 const EVENT_VIEW = 'v_master_event_full'
@@ -97,7 +97,7 @@ export async function adminCreateEvent(input: AdminCreateEventInput): Promise<Ad
   })
   if (error) {
     logSupabaseError('adminCreateEvent', error)
-    throw new Error(error.message || 'Não foi possível criar o evento.')
+    throw new Error(friendlyAdminError(error, 'Não foi possível criar o evento.'))
   }
   return data as AdminCreateEventResult
 }
@@ -157,7 +157,7 @@ export async function adminUpdateEvent(input: AdminUpdateEventInput): Promise<Ad
   })
   if (error) {
     logSupabaseError('adminUpdateEvent', error)
-    throw new Error(error.message || 'Não foi possível atualizar o evento.')
+    throw new Error(friendlyAdminError(error, 'Não foi possível atualizar o evento.'))
   }
   return data as AdminCreateEventResult
 }
@@ -173,7 +173,7 @@ export async function adminSetEventActive(idEvent: string, isActive: boolean): P
   })
   if (error) {
     logSupabaseError('adminSetEventActive', error)
-    throw new Error(error.message || 'Não foi possível atualizar o evento.')
+    throw new Error(friendlyAdminError(error, 'Não foi possível atualizar o evento.'))
   }
 }
 

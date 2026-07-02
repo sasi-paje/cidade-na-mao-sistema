@@ -21,6 +21,7 @@ export function CreateEquipmentModal({ open, onClose, onSaved }: CreateEquipment
   const [form, setForm] = useState<EquipmentFormData>(EMPTY_EQUIPMENT_FORM)
   const [errors, setErrors] = useState<EquipmentFormErrors>({})
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useLockBodyScroll(open)
 
@@ -29,6 +30,7 @@ export function CreateEquipmentModal({ open, onClose, onSaved }: CreateEquipment
   const handleClose = () => {
     setForm(EMPTY_EQUIPMENT_FORM)
     setErrors({})
+    setSaveError(null)
     onClose()
   }
 
@@ -48,11 +50,17 @@ export function CreateEquipmentModal({ open, onClose, onSaved }: CreateEquipment
       return
     }
     setSaving(true)
+    setSaveError(null)
     try {
       await createEquipment(formToInput(form))
       onSaved()
       handleClose()
-    } catch {
+    } catch (e) {
+      setSaveError(
+        e instanceof Error && e.message
+          ? e.message
+          : 'Não foi possível criar o equipamento. Tente novamente.',
+      )
       setSaving(false)
     }
   }
@@ -75,6 +83,9 @@ export function CreateEquipmentModal({ open, onClose, onSaved }: CreateEquipment
           <EquipmentForm data={form} errors={errors} onChange={handleChange} />
           {hasErrors && (
             <p className="mt-3 text-[13px] text-[#eb5757]">Preencha todos os campos obrigatórios.</p>
+          )}
+          {saveError && (
+            <p className="mt-3 rounded-[5px] bg-[#fdecec] px-3 py-2 text-[13px] text-[#eb5757]">{saveError}</p>
           )}
         </div>
 

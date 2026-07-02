@@ -25,7 +25,7 @@ export function equipmentToForm(equipment: Equipment): EquipmentFormData {
 export function validateEquipmentForm(form: EquipmentFormData): EquipmentFormErrors {
   const errors: EquipmentFormErrors = {}
   if (!form.name.trim()) errors.name = true
-  if (form.quantity === '' || Number(form.quantity) < 0 || Number.isNaN(Number(form.quantity))) {
+  if (form.quantity === '' || Number.isNaN(Number(form.quantity)) || Number(form.quantity) <= 0) {
     errors.quantity = true
   }
   if (!form.description.trim()) errors.description = true
