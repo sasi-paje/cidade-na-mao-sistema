@@ -3,6 +3,7 @@ import { MaterialIcon } from '../../../../shared/components/MaterialIcon'
 import { useLockBodyScroll } from '../../../../shared/hooks/useLockBodyScroll'
 import { useEquipment } from '../../../../features/equipment'
 import { adminCreateEvent } from '../../../../features/events'
+import { useWebTenant } from '../../../../features/web-tenant'
 import { NewEventInfoStep } from './NewEventInfoStep'
 import { EditEventEquipmentTab, type EquipItem } from './EditEventEquipmentTab'
 import {
@@ -40,7 +41,8 @@ function validate(form: NewEventFormData): NewEventFormErrors {
  * de `useEquipment` (hoje mock/localStorage até auth/RLS abrir a leitura real).
  */
 export function NewEventModal({ open, onClose, onSaved }: NewEventModalProps) {
-  const { data: catalog } = useEquipment()
+  const { tenant } = useWebTenant()
+  const { data: catalog } = useEquipment(tenant)
   const [step, setStep] = useState<Step>('info')
   const [form, setForm] = useState<NewEventFormData>(EMPTY_NEW_EVENT_FORM)
   const [errors, setErrors] = useState<NewEventFormErrors>({})
@@ -98,7 +100,7 @@ export function NewEventModal({ open, onClose, onSaved }: NewEventModalProps) {
         requested_at: dt.toISOString(),
         capacity: Number(form.capacity),
         equipment,
-      })
+      }, tenant)
       onSaved()
       handleClose()
     } catch (e) {

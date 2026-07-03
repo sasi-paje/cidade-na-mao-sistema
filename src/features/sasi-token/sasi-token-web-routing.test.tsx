@@ -52,11 +52,19 @@ function renderAt(entry: string) {
 beforeEach(() => {
   vi.clearAllMocks()
   window.sessionStorage.clear()
+  // Este teste valida o gate PADRÃO (login por sessão SASI). Fixamos os modos
+  // web sem-login como false para ficar determinístico independentemente do
+  // .env.local (que pode habilitar VITE_WEB_EMBED_MODE / VITE_WEB_PUBLIC_MODE).
+  vi.stubEnv('VITE_WEB_EMBED_MODE', 'false')
+  vi.stubEnv('VITE_WEB_PUBLIC_MODE', 'false')
   exchange.mockResolvedValue({ success: false, error: 'sem sessão' })
   mockUser.mockReturnValue(ANON as never)
 })
 
-afterEach(() => cleanup())
+afterEach(() => {
+  cleanup()
+  vi.unstubAllEnvs()
+})
 
 describe('captura do sasi-token nas rotas /web/*', () => {
   it('captura o token e dispara a troca ao entrar em /web/eventos', async () => {

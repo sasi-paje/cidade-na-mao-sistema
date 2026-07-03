@@ -2,6 +2,7 @@ import { useLockBodyScroll } from '../../../../shared/hooks/useLockBodyScroll'
 import { useEquipment } from '../../../../features/equipment'
 import { useEventById } from '../../../../features/events'
 import type { EventFullView } from '../../../../features/events'
+import { useWebTenant } from '../../../../features/web-tenant'
 import { EditEventForm } from './EditEventForm'
 
 interface EditEventModalProps {
@@ -19,8 +20,9 @@ interface EditEventModalProps {
  * dele. Salva real via `admin_update_event` (sem mock/localStorage).
  */
 export function EditEventModal({ event, open, onClose, onSaved, onNotify }: EditEventModalProps) {
-  const { data: full, loading } = useEventById(open && event ? event.id_event : undefined)
-  const { data: catalog } = useEquipment()
+  const { tenant } = useWebTenant()
+  const { data: full, loading } = useEventById(open && event ? event.id_event : undefined, tenant)
+  const { data: catalog } = useEquipment(tenant)
 
   useLockBodyScroll(open)
 

@@ -22,7 +22,7 @@ import type { Equipment } from '../../equipment/types/equipment.types'
 import { getEvents, setEvents, genId, nowIso, resolveAsync } from '../mocks/event-storage.mock'
 import { seedEventMockData } from '../mocks/event.mock'
 import { buildEventFullView } from '../mocks/event-view.mock'
-import { supabase, hasSupabaseEnv, canUseMockFallback } from '../../../lib/supabase/client'
+import { supabase, hasSupabaseEnv, canUseMockFallback, isWebPublicMode } from '../../../lib/supabase/client'
 import { logSupabaseError, friendlyAdminError } from '../../../lib/supabase/supabase-error'
 
 // View admin (security_invoker): RLS filtra por tenant/role; anon → 0 linhas.
@@ -85,7 +85,27 @@ export interface AdminCreateEventResult {
  * Sem fallback mock: a autorização/tenant/usuário vêm da sessão Supabase (RLS +
  * current_*). Lança em qualquer falha — o chamador trata o erro na UI.
  */
-export async function adminCreateEvent(input: AdminCreateEventInput): Promise<AdminCreateEventResult> {
+export async function adminCreateEvent(
+  input: AdminCreateEventInput,
+  tenantSlug?: string | null,
+): Promise<AdminCreateEventResult> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { data, error } = await supabase.rpc('web_create_event_by_tenant', {
+      p_tenant_slug: tenantSlug,
+      p_title: input.title,
+      p_description: input.description,
+      p_banner_url: input.banner_url,
+      p_location: input.location,
+      p_requested_at: input.requested_at,
+      p_capacity: input.capacity,
+      p_equipment_requests: input.equipment,
+    })
+    if (error) {
+      logSupabaseError('web_create_event_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível criar o evento.')
+    }
+    return data as AdminCreateEventResult
+  }
   const { data, error } = await supabase.rpc('admin_create_event', {
     p_title: input.title,
     p_description: input.description,
@@ -143,7 +163,29 @@ export interface AdminUpdateEventInput {
  * Edita um evento REAL via RPC transacional `admin_update_event`.
  * Faz REPLACE completo dos equipamentos; admin-only; sem mock. Lança em falha.
  */
-export async function adminUpdateEvent(input: AdminUpdateEventInput): Promise<AdminCreateEventResult> {
+export async function adminUpdateEvent(
+  input: AdminUpdateEventInput,
+  tenantSlug?: string | null,
+): Promise<AdminCreateEventResult> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { data, error } = await supabase.rpc('web_update_event_by_tenant', {
+      p_tenant_slug: tenantSlug,
+      p_id_event: input.id_event,
+      p_id_slot: input.id_slot,
+      p_title: input.title,
+      p_description: input.description,
+      p_banner_url: input.banner_url,
+      p_location: input.location,
+      p_requested_at: input.requested_at,
+      p_capacity: input.capacity,
+      p_equipment_requests: input.equipment,
+    })
+    if (error) {
+      logSupabaseError('web_update_event_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível atualizar o evento.')
+    }
+    return data as AdminCreateEventResult
+  }
   const { data, error } = await supabase.rpc('admin_update_event', {
     p_id_event: input.id_event,
     p_id_slot: input.id_slot,
@@ -166,7 +208,23 @@ export async function adminUpdateEvent(input: AdminUpdateEventInput): Promise<Ad
  * Ativa/inativa um evento (soft-toggle real) via RPC `admin_set_event_active`.
  * Admin-only; tenant/usuário vêm da sessão. Lança em falha.
  */
-export async function adminSetEventActive(idEvent: string, isActive: boolean): Promise<void> {
+export async function adminSetEventActive(
+  idEvent: string,
+  isActive: boolean,
+  tenantSlug?: string | null,
+): Promise<void> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { error } = await supabase.rpc('web_set_event_active_by_tenant', {
+      p_tenant_slug: tenantSlug,
+      p_id_event: idEvent,
+      p_is_active: isActive,
+    })
+    if (error) {
+      logSupabaseError('web_set_event_active_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível atualizar o evento.')
+    }
+    return
+  }
   const { error } = await supabase.rpc('admin_set_event_active', {
     p_id_event: idEvent,
     p_is_active: isActive,
@@ -317,7 +375,21 @@ export async function createEvent(input: CreateEventInput): Promise<EventMaster>
 // ---------------------------------------------------------------------------
 // LEITURA — Supabase com fallback mock
 // ---------------------------------------------------------------------------
-export async function getEventById(idEvent: string): Promise<EventFullView | null> {
+export async function getEventById(
+  idEvent: string,
+  tenantSlug?: string | null,
+): Promise<EventFullView | null> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { data, error } = await supabase.rpc('web_get_event_by_tenant', {
+      p_tenant_slug: tenantSlug,
+      p_id_event: idEvent,
+    })
+    if (error) {
+      logSupabaseError('web_get_event_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível carregar o evento.')
+    }
+    return (data as EventFullView) ?? null
+  }
   if (hasSupabaseEnv()) {
     try {
       // 1) Contexto admin/líder autenticado: view admin (tenant via RLS),
@@ -421,7 +493,31 @@ export async function listPendingEventRequests(): Promise<EventFullView[]> {
 }
 
 /** Admin/web: todos os eventos, com filtros opcionais. */
-export async function listWebEvents(filters?: WebEventFilters): Promise<EventFullView[]> {
+function applyWebEventFilters(list: EventFullView[], filters?: WebEventFilters): EventFullView[] {
+  let result = list
+  if (filters?.slot_status) result = result.filter((v) => v.slot_status === filters.slot_status)
+  if (filters?.is_active !== undefined) result = result.filter((v) => v.is_active === filters.is_active)
+  if (filters?.search) {
+    const q = filters.search.toLowerCase()
+    result = result.filter(
+      (v) => v.title.toLowerCase().includes(q) || v.location.toLowerCase().includes(q),
+    )
+  }
+  return result
+}
+
+export async function listWebEvents(
+  filters?: WebEventFilters,
+  tenantSlug?: string | null,
+): Promise<EventFullView[]> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { data, error } = await supabase.rpc('web_list_events_by_tenant', { p_tenant_slug: tenantSlug })
+    if (error) {
+      logSupabaseError('web_list_events_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível carregar os eventos.')
+    }
+    return applyWebEventFilters((data ?? []) as EventFullView[], filters)
+  }
   if (hasSupabaseEnv()) {
     try {
       let query = supabase.from(EVENT_VIEW).select('*')

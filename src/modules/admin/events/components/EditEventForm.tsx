@@ -4,6 +4,7 @@ import { adminUpdateEvent } from '../../../../features/events'
 import type { EventFullView } from '../../../../features/events'
 import type { Equipment } from '../../../../features/equipment'
 import { notifyEventAttendees, buildNotifyMessage } from '../../../../features/event-notifications'
+import { useWebTenant } from '../../../../features/web-tenant'
 import { formatEventDay, formatEventTime } from '../../../../utils/eventDate'
 import { NewEventInfoStep } from './NewEventInfoStep'
 import { EditEventEquipmentTab, type EquipItem } from './EditEventEquipmentTab'
@@ -58,6 +59,7 @@ function validate(form: NewEventFormData): NewEventFormErrors {
  * Montado com `key={event.id_event}` para reinicializar a cada abertura.
  */
 export function EditEventForm({ event, catalog, onClose, onSaved, onNotify }: EditEventFormProps) {
+  const { tenant } = useWebTenant()
   const [tab, setTab] = useState<EditTab>('info')
   const [form, setForm] = useState<NewEventFormData>(() => eventToForm(event))
   const [errors, setErrors] = useState<NewEventFormErrors>({})
@@ -118,7 +120,7 @@ export function EditEventForm({ event, catalog, onClose, onSaved, onNotify }: Ed
         requested_at: newIso,
         capacity: Number(form.capacity),
         equipment,
-      })
+      }, tenant)
       onSaved()
       // Notifica inscritos SÓ quando o evento é confirmado e houve mudança relevante.
       // A edição já persistiu; falha de notificação vira aviso (não desfaz o salvamento).
