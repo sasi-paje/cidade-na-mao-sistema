@@ -69,8 +69,6 @@ export function WebEventsPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="shrink-0">
-      <h1 className="mb-4 text-[22px] font-bold text-[#0f3255]">Eventos</h1>
-
       <WebEventsToolbar
         search={search}
         onSearchChange={handleSearchChange}

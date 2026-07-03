@@ -45,8 +45,6 @@ export function WebEquipmentPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="shrink-0">
-      <h1 className="mb-4 text-[22px] font-bold text-[#0f3255]">Equipamentos</h1>
-
       <EquipmentToolbar
         search={search}
         onSearchChange={handleSearchChange}
