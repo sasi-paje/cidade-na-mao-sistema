@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAllEquipment } from '../../../../features/equipment'
+import { useWebTenant } from '../../../../features/web-tenant'
 import type { Equipment } from '../../../../features/equipment'
 import { EquipmentToolbar } from '../components/EquipmentToolbar'
 import { EquipmentPagination } from '../components/EquipmentPagination'
@@ -11,7 +12,8 @@ const PAGE_SIZE = 10
 
 /** `/web/equipamentos` — gestão de equipamentos (admin). */
 export function WebEquipmentPage() {
-  const { data: all, loading, error, refetch } = useAllEquipment()
+  const { tenant } = useWebTenant()
+  const { data: all, loading, error, refetch } = useAllEquipment(tenant)
 
   const [search, setSearch] = useState('')
   const [onlyInactive, setOnlyInactive] = useState(false)

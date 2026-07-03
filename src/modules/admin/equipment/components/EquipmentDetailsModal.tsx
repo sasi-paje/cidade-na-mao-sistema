@@ -3,6 +3,7 @@ import { MaterialIcon } from '../../../../shared/components/MaterialIcon'
 import { useLockBodyScroll } from '../../../../shared/hooks/useLockBodyScroll'
 import { updateEquipment, setEquipmentActive } from '../../../../features/equipment'
 import type { Equipment } from '../../../../features/equipment'
+import { useWebTenant } from '../../../../features/web-tenant'
 import { EquipmentForm } from './EquipmentForm'
 import {
   equipmentToForm,
@@ -23,6 +24,7 @@ const label = 'mb-1 block text-[13px] font-semibold text-[#0f3255]'
 const value = 'text-[14px] text-[#4c4c4c]'
 
 export function EquipmentDetailsModal({ equipment, open, onClose, onSaved }: EquipmentDetailsModalProps) {
+  const { tenant } = useWebTenant()
   const [current, setCurrent] = useState<Equipment | null>(equipment)
   const [mode, setMode] = useState<'view' | 'edit'>('view')
   const [form, setForm] = useState<EquipmentFormData>(() =>
@@ -61,7 +63,7 @@ export function EquipmentDetailsModal({ equipment, open, onClose, onSaved }: Equ
     }
     setBusy(true)
     try {
-      const updated = await updateEquipment(current.id, formToInput(form))
+      const updated = await updateEquipment(current.id, formToInput(form), tenant)
       setCurrent(updated)
       onSaved()
       setMode('view')
@@ -77,7 +79,7 @@ export function EquipmentDetailsModal({ equipment, open, onClose, onSaved }: Equ
     setToggleError(null)
     setToggling(true)
     try {
-      await setEquipmentActive(current.id, !current.is_active)
+      await setEquipmentActive(current.id, !current.is_active, tenant)
       setCurrent({ ...current, is_active: !current.is_active })
       onSaved()
       setConfirmToggle(false)

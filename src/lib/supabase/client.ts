@@ -48,3 +48,18 @@ export function canUseMockFallback(): boolean {
 export function isWebEmbedMode(): boolean {
   return import.meta.env.VITE_WEB_EMBED_MODE === 'true'
 }
+
+/**
+ * Modo web público por tenant (`VITE_WEB_PUBLIC_MODE=true`): as telas `/web/*`
+ * operam SEM autenticação, usando o tenant informado na URL (`?tenant=slug`)
+ * como contexto. Qualquer pessoa com a URL do tenant pode operar aquele tenant.
+ *
+ * Neste modo, os services usam as RPCs web públicas por tenant
+ * (`web_*_by_tenant`, EXECUTE liberado só para `anon` nessas RPCs) — as RPCs
+ * admin atuais continuam restritas a `authenticated`. O isolamento é feito
+ * DENTRO das RPCs (resolvem o tenant por slug, validam ativo, nunca cruzam
+ * tenants). `service_role` jamais vai ao frontend.
+ */
+export function isWebPublicMode(): boolean {
+  return import.meta.env.VITE_WEB_PUBLIC_MODE === 'true'
+}

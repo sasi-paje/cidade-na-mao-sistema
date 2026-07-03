@@ -18,7 +18,7 @@ import {
   resolveAsync,
 } from '../../events/mocks/event-storage.mock'
 import { seedEventMockData } from '../../events/mocks/event.mock'
-import { supabase, hasSupabaseEnv, canUseMockFallback } from '../../../lib/supabase/client'
+import { supabase, hasSupabaseEnv, canUseMockFallback, isWebPublicMode } from '../../../lib/supabase/client'
 import { logSupabaseError, friendlyAdminError } from '../../../lib/supabase/supabase-error'
 
 // Sem auth ainda: revisor padrão até a integração com perfis (Etapa 7).
@@ -45,7 +45,19 @@ function recordApproval(row: Omit<EventApproval, 'id' | 'created_at'>): void {
 // id_reviewed_by/tenant). Fallback mock/localStorage só em dev se a RPC falhar
 // ou se não houver env Supabase — REMOVER quando o fluxo real estiver firme.
 // ---------------------------------------------------------------------------
-export async function approveEvent(idEvent: string, idSlot: string): Promise<void> {
+export async function approveEvent(idEvent: string, idSlot: string, tenantSlug?: string | null): Promise<void> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { error } = await supabase.rpc('web_approve_event_by_tenant', {
+      p_tenant_slug: tenantSlug,
+      p_id_event: idEvent,
+      p_id_slot: idSlot,
+    })
+    if (error) {
+      logSupabaseError('web_approve_event_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível aprovar o evento.')
+    }
+    return
+  }
   if (hasSupabaseEnv()) {
     try {
       const { error } = await supabase.rpc('approve_event', { p_id_event: idEvent, p_id_slot: idSlot })
@@ -71,7 +83,21 @@ export async function approveEvent(idEvent: string, idSlot: string): Promise<voi
   return resolveAsync(undefined)
 }
 
-export async function proposeCounterDate(input: CounterProposalInput): Promise<void> {
+export async function proposeCounterDate(input: CounterProposalInput, tenantSlug?: string | null): Promise<void> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { error } = await supabase.rpc('web_propose_counter_date_by_tenant', {
+      p_tenant_slug: tenantSlug,
+      p_id_event: input.id_event,
+      p_id_slot: input.id_slot,
+      p_counter_date: input.counter_date,
+      p_reason: input.reason ?? '',
+    })
+    if (error) {
+      logSupabaseError('web_propose_counter_date_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível propor nova data.')
+    }
+    return
+  }
   if (hasSupabaseEnv()) {
     try {
       const { error } = await supabase.rpc('propose_counter_date', {

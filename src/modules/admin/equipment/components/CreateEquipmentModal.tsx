@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MaterialIcon } from '../../../../shared/components/MaterialIcon'
 import { useLockBodyScroll } from '../../../../shared/hooks/useLockBodyScroll'
 import { createEquipment } from '../../../../features/equipment'
+import { useWebTenant } from '../../../../features/web-tenant'
 import { EquipmentForm } from './EquipmentForm'
 import {
   EMPTY_EQUIPMENT_FORM,
@@ -18,6 +19,7 @@ interface CreateEquipmentModalProps {
 }
 
 export function CreateEquipmentModal({ open, onClose, onSaved }: CreateEquipmentModalProps) {
+  const { tenant } = useWebTenant()
   const [form, setForm] = useState<EquipmentFormData>(EMPTY_EQUIPMENT_FORM)
   const [errors, setErrors] = useState<EquipmentFormErrors>({})
   const [saving, setSaving] = useState(false)
@@ -52,7 +54,7 @@ export function CreateEquipmentModal({ open, onClose, onSaved }: CreateEquipment
     setSaving(true)
     setSaveError(null)
     try {
-      await createEquipment(formToInput(form))
+      await createEquipment(formToInput(form), tenant)
       onSaved()
       handleClose()
     } catch (e) {

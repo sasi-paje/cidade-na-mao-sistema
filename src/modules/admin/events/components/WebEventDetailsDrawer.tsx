@@ -4,6 +4,7 @@ import { useLockBodyScroll } from '../../../../shared/hooks/useLockBodyScroll'
 import { useEventById, adminSetEventActive } from '../../../../features/events'
 import { useEventApproval } from '../../../../features/event-approvals'
 import { notifyEventAttendees, buildNotifyMessage } from '../../../../features/event-notifications'
+import { useWebTenant } from '../../../../features/web-tenant'
 import { formatEventDay, formatEventTime } from '../../../../utils/eventDate'
 import { MOCK_ADMIN_USER_ID } from '../../../../app/constants/currentUser'
 import { EventDetailsInfoTab } from './EventDetailsInfoTab'
@@ -30,8 +31,9 @@ interface WebEventDetailsDrawerProps {
  * Renderizado por cima da lista (overlay) — a lista permanece montada atrás.
  */
 export function WebEventDetailsDrawer({ eventId, onClose, onNotify }: WebEventDetailsDrawerProps) {
-  const { data: event, loading, error, refetch } = useEventById(eventId)
-  const { approve, proposeCounter, loading: acting } = useEventApproval()
+  const { tenant } = useWebTenant()
+  const { data: event, loading, error, refetch } = useEventById(eventId, tenant)
+  const { approve, proposeCounter, loading: acting } = useEventApproval(tenant)
 
   const [activeTab, setActiveTab] = useState<DetailTab>('info')
   const [subModal, setSubModal] = useState<SubModal>(null)
@@ -59,7 +61,7 @@ export function WebEventDetailsDrawer({ eventId, onClose, onNotify }: WebEventDe
     setToggleError(null)
     setTogglingActive(true)
     try {
-      await adminSetEventActive(event.id_event, !wasActive)
+      await adminSetEventActive(event.id_event, !wasActive, tenant)
       setConfirmToggle(false)
       await refetch()
       if (notifyOnInactivate) {

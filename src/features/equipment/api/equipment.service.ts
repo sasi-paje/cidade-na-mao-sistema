@@ -21,7 +21,7 @@ import {
   resolveAsync,
 } from '../../events/mocks/event-storage.mock'
 import { seedEventMockData } from '../../events/mocks/event.mock'
-import { supabase, hasSupabaseEnv, canUseMockFallback } from '../../../lib/supabase/client'
+import { supabase, hasSupabaseEnv, canUseMockFallback, isWebPublicMode } from '../../../lib/supabase/client'
 import { logSupabaseError, friendlyAdminError } from '../../../lib/supabase/supabase-error'
 
 const EQUIPMENT_TABLE = 'master_equipment'
@@ -63,7 +63,15 @@ function mockEquipments(): Equipment[] {
 }
 
 /** Catálogo visível ao público/líder: apenas ativos. */
-export async function listEquipment(): Promise<Equipment[]> {
+export async function listEquipment(tenantSlug?: string | null): Promise<Equipment[]> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { data, error } = await supabase.rpc('web_list_equipment_by_tenant', { p_tenant_slug: tenantSlug })
+    if (error) {
+      logSupabaseError('web_list_equipment_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível carregar os equipamentos.')
+    }
+    return ((data ?? []) as Equipment[]).filter((e) => e.is_active)
+  }
   if (hasSupabaseEnv()) {
     try {
       const { data, error } = await supabase.from(EQUIPMENT_TABLE).select('*').eq('is_active', true)
@@ -80,7 +88,15 @@ export async function listEquipment(): Promise<Equipment[]> {
 }
 
 /** Listagem admin: todos os equipamentos (ativos e inativos). */
-export async function listAllEquipment(): Promise<Equipment[]> {
+export async function listAllEquipment(tenantSlug?: string | null): Promise<Equipment[]> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { data, error } = await supabase.rpc('web_list_equipment_by_tenant', { p_tenant_slug: tenantSlug })
+    if (error) {
+      logSupabaseError('web_list_equipment_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível carregar os equipamentos.')
+    }
+    return (data ?? []) as Equipment[]
+  }
   if (hasSupabaseEnv()) {
     try {
       const { data, error } = await supabase.from(EQUIPMENT_TABLE).select('*')
@@ -115,7 +131,20 @@ export async function getEquipmentById(idEquipment: string): Promise<Equipment |
   return resolveAsync(mockEquipments().find((e) => e.id === idEquipment) ?? null)
 }
 
-export async function createEquipment(input: EquipmentInput): Promise<Equipment> {
+export async function createEquipment(input: EquipmentInput, tenantSlug?: string | null): Promise<Equipment> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { data, error } = await supabase.rpc('web_create_equipment_by_tenant', {
+      p_tenant_slug: tenantSlug,
+      p_name: input.name,
+      p_quantity: input.quantity,
+      p_description: input.description,
+    })
+    if (error) {
+      logSupabaseError('web_create_equipment_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível criar o equipamento.')
+    }
+    return mapEquipmentRow(data as EquipmentRow)
+  }
   if (hasSupabaseEnv()) {
     try {
       const { data, error } = await supabase.rpc('admin_create_equipment', {
@@ -144,7 +173,21 @@ export async function createEquipment(input: EquipmentInput): Promise<Equipment>
   return resolveAsync(equipment)
 }
 
-export async function updateEquipment(id: string, input: EquipmentInput): Promise<Equipment> {
+export async function updateEquipment(id: string, input: EquipmentInput, tenantSlug?: string | null): Promise<Equipment> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { data, error } = await supabase.rpc('web_update_equipment_by_tenant', {
+      p_tenant_slug: tenantSlug,
+      p_id: id,
+      p_name: input.name,
+      p_quantity: input.quantity,
+      p_description: input.description,
+    })
+    if (error) {
+      logSupabaseError('web_update_equipment_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível atualizar o equipamento.')
+    }
+    return mapEquipmentRow(data as EquipmentRow)
+  }
   if (hasSupabaseEnv()) {
     try {
       const { data, error } = await supabase.rpc('admin_update_equipment', {
@@ -179,7 +222,19 @@ export async function updateEquipment(id: string, input: EquipmentInput): Promis
   return resolveAsync(updated)
 }
 
-export async function setEquipmentActive(id: string, isActive: boolean): Promise<void> {
+export async function setEquipmentActive(id: string, isActive: boolean, tenantSlug?: string | null): Promise<void> {
+  if (isWebPublicMode() && tenantSlug) {
+    const { error } = await supabase.rpc('web_set_equipment_active_by_tenant', {
+      p_tenant_slug: tenantSlug,
+      p_id: id,
+      p_is_active: isActive,
+    })
+    if (error) {
+      logSupabaseError('web_set_equipment_active_by_tenant', error)
+      throw new Error(error.message || 'Não foi possível atualizar o equipamento.')
+    }
+    return
+  }
   if (hasSupabaseEnv()) {
     try {
       const { error } = await supabase.rpc('admin_set_equipment_active', { p_id: id, p_is_active: isActive })

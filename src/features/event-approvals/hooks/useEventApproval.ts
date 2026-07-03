@@ -3,9 +3,10 @@ import type { CounterProposalInput } from '../types/event-approval.types'
 import { approveEvent, proposeCounterDate, rejectEvent } from '../api/event-approvals.service'
 
 /**
- * Ações de decisão do admin sobre um evento (mutações).
+ * Ações de decisão do admin sobre um evento (mutações). `tenantSlug` é usado no
+ * modo web público (`VITE_WEB_PUBLIC_MODE`) para escopar por tenant.
  */
-export function useEventApproval() {
+export function useEventApproval(tenantSlug?: string | null) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
 
@@ -24,13 +25,14 @@ export function useEventApproval() {
   }, [])
 
   const approve = useCallback(
-    (idEvent: string, idSlot: string) => run(() => approveEvent(idEvent, idSlot), 'Falha ao aprovar evento'),
-    [run],
+    (idEvent: string, idSlot: string) =>
+      run(() => approveEvent(idEvent, idSlot, tenantSlug), 'Falha ao aprovar evento'),
+    [run, tenantSlug],
   )
 
   const proposeCounter = useCallback(
-    (input: CounterProposalInput) => run(() => proposeCounterDate(input), 'Falha ao propor nova data'),
-    [run],
+    (input: CounterProposalInput) => run(() => proposeCounterDate(input, tenantSlug), 'Falha ao propor nova data'),
+    [run, tenantSlug],
   )
 
   const reject = useCallback(

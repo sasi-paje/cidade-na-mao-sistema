@@ -10,12 +10,14 @@ import { NewEventModal } from '../components/NewEventModal'
 import { EditEventModal } from '../components/EditEventModal'
 import { WebEventDetailsDrawer } from '../components/WebEventDetailsDrawer'
 import { useToast, ToastContainer } from '../../../../shared/components'
+import { useWebTenant } from '../../../../features/web-tenant'
 
 const PAGE_SIZE = 9
 
 /** `/web/eventos` — listagem web/admin de eventos. */
 export function WebEventsPage() {
-  const { data: allEvents, loading, error, refetch } = useWebEvents()
+  const { tenant } = useWebTenant()
+  const { data: allEvents, loading, error, refetch } = useWebEvents(undefined, tenant)
 
   // Filtro por data (calendário) — reaproveita a lógica do mobile.
   const { filterDay, eventDateKeys, filtered: byDate, initialMonth, select, clear } =
