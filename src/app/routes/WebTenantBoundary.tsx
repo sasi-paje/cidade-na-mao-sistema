@@ -1,6 +1,6 @@
 /**
- * WebTenantBoundary — porta de entrada das rotas `/web/*` no MODO WEB PÚBLICO
- * (`VITE_WEB_PUBLIC_MODE=true`).
+ * WebTenantBoundary — porta de entrada das rotas `/web/*` (modo web público
+ * por tenant, definitivo — sem flag e sem sessão).
  *
  * NÃO há login/sessão/AccessRequired aqui: o acesso é público por tenant. O
  * boundary apenas garante que a URL traz um `?tenant=` válido:
@@ -26,12 +26,12 @@ function FullScreen({ children }: { children: React.ReactNode }) {
   )
 }
 
-function TenantError({ message }: { message: string }) {
+function TenantError({ message }: { message?: string }) {
   return (
     <FullScreen>
       <div className="max-w-[440px] text-center">
         <h1 className="text-[22px] font-bold text-[#0f3255]">Acesso indisponível</h1>
-        <p className="mt-2 text-[15px] leading-[1.5] text-[#5b6675]">{message}</p>
+        {message && <p className="mt-2 text-[15px] leading-[1.5] text-[#5b6675]">{message}</p>}
       </div>
     </FullScreen>
   )
