@@ -3,7 +3,8 @@ import { usePublicEvents } from '../../../features/events'
 import type { EventFullView } from '../../../features/events'
 import { useMyAttendances } from '../../../features/event-attendance'
 import { useCurrentUser } from '../../../features/auth'
-import { buildPath, PUBLIC_ROUTES } from '../../../app/routes/routePaths'
+import { useMobileToken } from '../../../features/sasi-token'
+import { buildPath, USER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
 import { formatDayMonthShort } from '../../../utils/eventDate'
 import { EventCard } from './EventCard'
 import { EventsTabs } from './EventsTabs'
@@ -11,9 +12,10 @@ import { EventsPanel } from './EventsPanel'
 import { EventCalendarModal } from './EventCalendarModal'
 import { useEventDateFilter } from './useEventDateFilter'
 
-/** `/m/eventos` — lista de eventos aprovados (público) com filtro por data. */
+/** `/m/usuario/eventos` (e `/m/lider/eventos`) — lista de eventos aprovados (público) com filtro por data. */
 export function PublicEventsPage() {
   const navigate = useNavigate()
+  const { withMobileToken } = useMobileToken()
   const { masterUserId } = useCurrentUser()
   const { data, loading, error } = usePublicEvents()
   const { data: attendances } = useMyAttendances(masterUserId)
@@ -24,7 +26,7 @@ export function PublicEventsPage() {
   const confirmedKeys = new Set(attendances.map((a) => `${a.id_event}::${a.id_slot}`))
 
   const openEvent = (event: EventFullView) => {
-    navigate(buildPath(PUBLIC_ROUTES.eventDetails, { id: event.id_event }))
+    navigate(withMobileToken(buildPath(USER_MOBILE_ROUTES.eventDetails, { id: event.id_event })))
   }
 
   return (

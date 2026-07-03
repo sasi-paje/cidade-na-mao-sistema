@@ -10,25 +10,59 @@
  *  - /web/* → área admin/web (gestão interna)
  */
 
-/** Rotas da área pública/mobile (`/m/*`) */
+/**
+ * Rotas mobile do FLUXO DE USUÁRIO COMUM (`/m/usuario/*`).
+ * O fluxo é definido pelo LINK acessado, não por cargo/role. Exige apenas
+ * token/sessão válidos (ver `MobileTokenRoute`).
+ */
+export const USER_MOBILE_ROUTES = {
+  /** Lista de todos os eventos */
+  events: '/m/usuario/eventos',
+  /** Detalhe de um evento */
+  eventDetails: '/m/usuario/eventos/:id',
+  /** Participações do usuário */
+  myEvents: '/m/usuario/meus-eventos',
+} as const
+
+/**
+ * Rotas mobile do FLUXO DE LÍDER DE COMUNIDADE (`/m/lider/*`).
+ * O fluxo é definido pelo LINK acessado, não por cargo/role. Exige apenas
+ * token/sessão válidos (ver `MobileTokenRoute`).
+ */
+export const LEADER_MOBILE_ROUTES = {
+  /** Solicitações de evento do líder */
+  requestedEvents: '/m/lider/eventos-solicitados',
+  /** Detalhe de uma solicitação */
+  requestedEventDetails: '/m/lider/eventos-solicitados/:id',
+  /** Formulário de solicitação de evento */
+  requestEvent: '/m/lider/solicitar-evento',
+  /** Todos os eventos (visão do líder) */
+  events: '/m/lider/eventos',
+} as const
+
+/**
+ * Rotas LEGADAS (`/m/*` sem prefixo de fluxo) — mantidas apenas como origem
+ * dos redirects de compatibilidade (→ `/m/usuario/*` ou `/m/lider/*`),
+ * preservando o `?token=`. Não usar em código novo.
+ */
 export const PUBLIC_ROUTES = {
   /** Landing / redirecionamento inicial */
   home: '/',
-  /** Lista de eventos aprovados (público geral) */
+  /** (legado) Lista de eventos aprovados */
   events: '/m/eventos',
-  /** Detalhe de um evento */
+  /** (legado) Detalhe de um evento */
   eventDetails: '/m/eventos/:id',
-  /** Participações do usuário */
+  /** (legado) Participações do usuário */
   myEvents: '/m/meus-eventos',
 } as const
 
-/** Rotas do líder da comunidade (`/m/*`, protegidas por perfil líder) */
+/** Rotas LEGADAS do líder (`/m/*` sem prefixo) — só para redirects. */
 export const LEADER_ROUTES = {
-  /** Solicitações de evento do próprio líder */
+  /** (legado) Solicitações de evento do próprio líder */
   requestedEvents: '/m/eventos-solicitados',
-  /** Detalhe de uma solicitação */
+  /** (legado) Detalhe de uma solicitação */
   requestedEventDetails: '/m/eventos-solicitados/:id',
-  /** Formulário de solicitação de evento */
+  /** (legado) Formulário de solicitação de evento */
   requestEvent: '/m/solicitar-evento',
 } as const
 

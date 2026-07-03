@@ -4,7 +4,8 @@ import { formatEventDateTime, formatEventDay, formatEventTime } from '../../../.
 import { useEventById } from '../../../../features/events'
 import { useEventSlot } from '../../../../features/event-slots'
 import { useLatestApproval } from '../../../../features/event-approvals'
-import { LEADER_ROUTES } from '../../../../app/routes/routePaths'
+import { useMobileToken } from '../../../../features/sasi-token'
+import { LEADER_MOBILE_ROUTES } from '../../../../app/routes/routePaths'
 import { EventBanner } from '../../../public/events/eventVisuals'
 import { MobileDialog } from '../../../public/events/MobileDialog'
 import { EventRequestStatusBadge } from '../components/EventRequestStatusBadge'
@@ -12,10 +13,11 @@ import { EventRequestStatusBadge } from '../components/EventRequestStatusBadge'
 const fieldLabel = 'text-[13px] font-bold text-[#2a2a2a]'
 const fieldValue = 'text-[14px] text-[#2a2a2a]'
 
-/** `/m/eventos-solicitados/:id` — detalhe da solicitação do líder. */
+/** `/m/lider/eventos-solicitados/:id` — detalhe da solicitação do líder. */
 export function EventRequestDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { withMobileToken } = useMobileToken()
   const [reviewOpen, setReviewOpen] = useState(false)
 
   const { data: event, loading, error, refetch } = useEventById(id)
@@ -45,7 +47,7 @@ export function EventRequestDetailsPage() {
         <p className="text-[15px] text-[#eb5757]">Solicitação não encontrada.</p>
         <button
           type="button"
-          onClick={() => navigate(LEADER_ROUTES.requestedEvents)}
+          onClick={() => navigate(withMobileToken(LEADER_MOBILE_ROUTES.requestedEvents))}
           className="mt-3 text-[14px] font-semibold text-[#1e558b]"
         >
           Voltar
@@ -126,7 +128,7 @@ export function EventRequestDetailsPage() {
           <div className="mt-1 flex flex-row gap-2">
             <button
               type="button"
-              onClick={() => navigate(LEADER_ROUTES.requestedEvents)}
+              onClick={() => navigate(withMobileToken(LEADER_MOBILE_ROUTES.requestedEvents))}
               className="h-[46px] flex-1 rounded-[8px] border-[1.5px] border-[#1e558b] bg-white text-[15px] font-bold text-[#1e558b]"
             >
               Voltar
@@ -142,7 +144,7 @@ export function EventRequestDetailsPage() {
         ) : (
           <button
             type="button"
-            onClick={() => navigate(LEADER_ROUTES.requestedEvents)}
+            onClick={() => navigate(withMobileToken(LEADER_MOBILE_ROUTES.requestedEvents))}
             className="mt-1 h-[46px] rounded-[8px] border-[1.5px] border-[#1e558b] bg-white text-[15px] font-bold text-[#1e558b]"
           >
             Voltar

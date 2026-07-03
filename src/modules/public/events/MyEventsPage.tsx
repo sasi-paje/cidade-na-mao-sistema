@@ -4,7 +4,8 @@ import { usePublicEvents } from '../../../features/events'
 import type { EventFullView } from '../../../features/events'
 import { useMyAttendances } from '../../../features/event-attendance'
 import { useCurrentUser } from '../../../features/auth'
-import { buildPath, PUBLIC_ROUTES } from '../../../app/routes/routePaths'
+import { useMobileToken } from '../../../features/sasi-token'
+import { buildPath, USER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
 import { EventCard } from './EventCard'
 import { EventsTabs } from './EventsTabs'
 import { EventsPanel } from './EventsPanel'
@@ -33,9 +34,10 @@ function PastToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   )
 }
 
-/** `/m/meus-eventos` — participações confirmadas do usuário autenticado. */
+/** `/m/usuario/meus-eventos` — participações confirmadas do usuário autenticado. */
 export function MyEventsPage() {
   const navigate = useNavigate()
+  const { withMobileToken } = useMobileToken()
   const { masterUserId } = useCurrentUser()
   const { data: attendances, loading: loadingAtt, error: errorAtt } = useMyAttendances(masterUserId)
   const { data: allEvents, loading: loadingEvents, error: errorEvents } = usePublicEvents()
@@ -61,7 +63,7 @@ export function MyEventsPage() {
   const hiddenPastCount = confirmedAll.length - myEvents.length
 
   const openEvent = (event: EventFullView) => {
-    navigate(buildPath(PUBLIC_ROUTES.eventDetails, { id: event.id_event }))
+    navigate(withMobileToken(buildPath(USER_MOBILE_ROUTES.eventDetails, { id: event.id_event })))
   }
 
   return (

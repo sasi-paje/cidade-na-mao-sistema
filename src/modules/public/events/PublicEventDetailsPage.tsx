@@ -1,25 +1,20 @@
 import { useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { MaterialIcon } from '../../../shared/components/MaterialIcon'
 import { useEventById } from '../../../features/events'
 import { useEventAttendance } from '../../../features/event-attendance'
 import { useCurrentUser } from '../../../features/auth'
-import { PUBLIC_ROUTES } from '../../../app/routes/routePaths'
+import { useMobileToken } from '../../../features/sasi-token'
+import { USER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
 import { EventBanner, EventDateLine } from './eventVisuals'
 import { MobileDialog } from './MobileDialog'
 
-/** `/m/eventos/:id` — detalhe do evento + confirmar/cancelar participação. */
+/** `/m/usuario/eventos/:id` — detalhe do evento + confirmar/cancelar participação. */
 export function PublicEventDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const { withMobileToken } = useMobileToken()
   const [modal, setModal] = useState<'confirm' | 'cancel' | null>(null)
-
-  /** Preserva o token da URL (quando presente) ao navegar entre telas mobile. */
-  const withToken = (path: string) => {
-    const token = searchParams.get('token')
-    return token ? `${path}?token=${encodeURIComponent(token)}` : path
-  }
 
   const { masterUserId, name, email } = useCurrentUser()
   const { data: event, loading, error, refetch: refetchEvent } = useEventById(id)
@@ -41,7 +36,7 @@ export function PublicEventDetailsPage() {
         <p className="text-[15px] text-[#eb5757]">Evento não encontrado.</p>
         <button
           type="button"
-          onClick={() => navigate(PUBLIC_ROUTES.events)}
+          onClick={() => navigate(withMobileToken(USER_MOBILE_ROUTES.events))}
           className="mt-3 text-[14px] font-semibold text-[#1e558b]"
         >
           Voltar para eventos
@@ -55,7 +50,7 @@ export function PublicEventDetailsPage() {
     try {
       await confirm()
       // Sucesso (Figma 78-5298): vai para "Meus Eventos", preservando o token.
-      navigate(withToken(PUBLIC_ROUTES.myEvents), { replace: true })
+      navigate(withMobileToken(USER_MOBILE_ROUTES.myEvents), { replace: true })
     } catch {
       /* erro: attendanceError exibido na tela; permanece e NÃO redireciona */
     }
@@ -109,7 +104,7 @@ export function PublicEventDetailsPage() {
         <div className="mt-1 flex flex-row gap-2">
           <button
             type="button"
-            onClick={() => navigate(PUBLIC_ROUTES.events)}
+            onClick={() => navigate(withMobileToken(USER_MOBILE_ROUTES.events))}
             className="h-[46px] flex-1 rounded-[8px] border-[1.5px] border-[#1e558b] bg-white text-[15px] font-bold text-[#1e558b]"
           >
             Voltar

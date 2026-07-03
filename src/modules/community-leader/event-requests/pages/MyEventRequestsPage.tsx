@@ -3,7 +3,8 @@ import { MaterialIcon } from '../../../../shared/components/MaterialIcon'
 import { useEventRequests } from '../../../../features/events'
 import type { EventFullView } from '../../../../features/events'
 import { useCurrentUser } from '../../../../features/auth'
-import { buildPath, LEADER_ROUTES } from '../../../../app/routes/routePaths'
+import { useMobileToken } from '../../../../features/sasi-token'
+import { buildPath, LEADER_MOBILE_ROUTES } from '../../../../app/routes/routePaths'
 import { formatDayMonthShort } from '../../../../utils/eventDate'
 import { EventsTabs } from '../../../public/events/EventsTabs'
 import { EventsPanel } from '../../../public/events/EventsPanel'
@@ -11,16 +12,17 @@ import { EventCalendarModal } from '../../../public/events/EventCalendarModal'
 import { useEventDateFilter } from '../../../public/events/useEventDateFilter'
 import { EventRequestCard } from '../components/EventRequestCard'
 
-/** `/m/eventos-solicitados` — solicitações de evento do líder (sessão real). */
+/** `/m/lider/eventos-solicitados` — solicitações de evento do líder (sessão real). */
 export function MyEventRequestsPage() {
   const navigate = useNavigate()
+  const { withMobileToken } = useMobileToken()
   const { masterUserId } = useCurrentUser()
   const { data, loading, error } = useEventRequests(masterUserId ?? '')
   const { filterDay, open, setOpen, eventDateKeys, filtered, initialMonth, select, clear } =
     useEventDateFilter(data)
 
   const openDetails = (request: EventFullView) => {
-    navigate(buildPath(LEADER_ROUTES.requestedEventDetails, { id: request.id_event }))
+    navigate(withMobileToken(buildPath(LEADER_MOBILE_ROUTES.requestedEventDetails, { id: request.id_event })))
   }
 
   return (
@@ -55,7 +57,7 @@ export function MyEventRequestsPage() {
 
         <button
           type="button"
-          onClick={() => navigate(LEADER_ROUTES.requestEvent)}
+          onClick={() => navigate(withMobileToken(LEADER_MOBILE_ROUTES.requestEvent))}
           className="mt-1 flex h-[46px] flex-row items-center justify-center gap-2 rounded-[8px] bg-[#1e558b] text-[15px] font-bold text-white"
         >
           <MaterialIcon name="note_add" size={20} />
