@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MaterialIcon } from '../../../../shared/components/MaterialIcon'
 import { BannerUploadField } from '../../../../shared/components/BannerUploadField'
+import { isPastDay, todayDayKey } from '../../../../utils/eventDate'
 import type { Equipment } from '../../../../features/equipment'
 import type { EventRequestFlowInput } from '../../../../features/events'
 
@@ -45,9 +46,11 @@ export function RequestEventForm({
 
   const hasIdentity = Boolean(leaderUserId && tenantId)
   const capacityNum = Number(capacity)
+  const dateInPast = isPastDay(date)
   const canSubmit =
     title.trim().length > 0 &&
     Boolean(date) &&
+    !dateInPast &&
     Boolean(time) &&
     location.trim().length > 0 &&
     capacityNum > 0
@@ -102,11 +105,17 @@ export function RequestEventForm({
           <MaterialIcon name="calendar_today" size={18} className="shrink-0 text-[#1e558b]" />
           <input
             type="date"
+            min={todayDayKey()}
             value={date}
             onChange={(e) => setDate(e.target.value)}
             className="flex-1 bg-transparent text-[14px] text-[#2a2a2a] outline-none"
           />
         </div>
+        {dateInPast && (
+          <span className="text-[13px] text-[#eb5757]">
+            A data do evento não pode ser anterior ao dia de hoje.
+          </span>
+        )}
       </div>
 
       {/* Hora — mesmo tratamento visual do campo "Dia" (container + ícone) */}

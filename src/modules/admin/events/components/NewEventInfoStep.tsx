@@ -1,4 +1,5 @@
 import { BannerUploadField } from '../../../../shared/components/BannerUploadField'
+import { todayDayKey } from '../../../../utils/eventDate'
 import type { NewEventFormData, NewEventFormErrors } from './newEvent.model'
 
 interface NewEventInfoStepProps {
@@ -47,6 +48,7 @@ export function NewEventInfoStep({ data, errors, onChange }: NewEventInfoStepPro
           <label className={labelClass}>Dia</label>
           <input
             type="date"
+            min={todayDayKey()}
             className={inputClass(errors.day)}
             value={data.day}
             onChange={(e) => onChange({ day: e.target.value })}

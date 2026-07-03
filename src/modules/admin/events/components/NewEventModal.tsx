@@ -4,6 +4,7 @@ import { useLockBodyScroll } from '../../../../shared/hooks/useLockBodyScroll'
 import { useEquipment } from '../../../../features/equipment'
 import { adminCreateEvent } from '../../../../features/events'
 import { useWebTenant } from '../../../../features/web-tenant'
+import { isPastDay } from '../../../../utils/eventDate'
 import { NewEventInfoStep } from './NewEventInfoStep'
 import { EditEventEquipmentTab, type EquipItem } from './EditEventEquipmentTab'
 import {
@@ -25,7 +26,7 @@ function validate(form: NewEventFormData): NewEventFormErrors {
   const errors: NewEventFormErrors = {}
   if (!form.banner) errors.banner = true
   if (!form.name.trim()) errors.name = true
-  if (!form.day) errors.day = true
+  if (!form.day || isPastDay(form.day)) errors.day = true
   if (!form.time) errors.time = true
   if (!form.location.trim()) errors.location = true
   if (!form.capacity || Number(form.capacity) < 1) errors.capacity = true
@@ -77,9 +78,11 @@ export function NewEventModal({ open, onClose, onSaved }: NewEventModalProps) {
     const found = validate(form)
     if (Object.keys(found).length > 0) {
       setErrors(found)
+      setSaveError(isPastDay(form.day) ? 'A data do evento não pode ser anterior ao dia de hoje.' : null)
       return
     }
     setErrors({})
+    setSaveError(null)
     setStep('equipment')
   }
 
@@ -88,6 +91,12 @@ export function NewEventModal({ open, onClose, onSaved }: NewEventModalProps) {
     const dt = new Date(`${form.day}T${form.time}`)
     if (Number.isNaN(dt.getTime())) {
       setSaveError('Data/hora inválida.')
+      return
+    }
+    if (isPastDay(form.day)) {
+      setStep('info')
+      setErrors((prev) => ({ ...prev, day: true }))
+      setSaveError('A data do evento não pode ser anterior ao dia de hoje.')
       return
     }
     setSaving(true)

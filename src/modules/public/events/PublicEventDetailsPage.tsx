@@ -6,6 +6,7 @@ import { useEventAttendance } from '../../../features/event-attendance'
 import { useCurrentUser } from '../../../features/auth'
 import { useMobileToken } from '../../../features/sasi-token'
 import { USER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
+import { isPastEvent } from '../../../utils/eventDate'
 import { EventBanner, EventDateLine } from './eventVisuals'
 import { MobileDialog } from './MobileDialog'
 
@@ -109,7 +110,10 @@ export function PublicEventDetailsPage() {
           >
             Voltar
           </button>
+          {/* Evento que já ocorreu: participação congelada — sem confirmar nem
+              cancelar ingresso (ação indisponível para evento passado). */}
           {masterUserId &&
+            !isPastEvent(event.requested_at) &&
             (isConfirmed ? (
               <button
                 type="button"

@@ -5,7 +5,7 @@ import type { EventFullView } from '../../../../features/events'
 import type { Equipment } from '../../../../features/equipment'
 import { notifyEventAttendees, buildNotifyMessage } from '../../../../features/event-notifications'
 import { useWebTenant } from '../../../../features/web-tenant'
-import { formatEventDay, formatEventTime } from '../../../../utils/eventDate'
+import { formatEventDay, formatEventTime, isPastDay } from '../../../../utils/eventDate'
 import { NewEventInfoStep } from './NewEventInfoStep'
 import { EditEventEquipmentTab, type EquipItem } from './EditEventEquipmentTab'
 import {
@@ -45,7 +45,7 @@ function validate(form: NewEventFormData): NewEventFormErrors {
   const errors: NewEventFormErrors = {}
   if (!form.banner) errors.banner = true
   if (!form.name.trim()) errors.name = true
-  if (!form.day) errors.day = true
+  if (!form.day || isPastDay(form.day)) errors.day = true
   if (!form.time) errors.time = true
   if (!form.location.trim()) errors.location = true
   if (!form.capacity || Number(form.capacity) < 1) errors.capacity = true
@@ -83,11 +83,18 @@ export function EditEventForm({ event, catalog, onClose, onSaved, onNotify }: Ed
     if (Object.keys(found).length > 0) {
       setErrors(found)
       setTab('info')
+      setSaveError(isPastDay(form.day) ? 'A data do evento não pode ser anterior ao dia de hoje.' : null)
       return
     }
     const dt = new Date(`${form.day}T${form.time}`)
     if (Number.isNaN(dt.getTime())) {
       setSaveError('Data/hora inválida.')
+      return
+    }
+    if (isPastDay(form.day)) {
+      setTab('info')
+      setErrors((prev) => ({ ...prev, day: true }))
+      setSaveError('A data do evento não pode ser anterior ao dia de hoje.')
       return
     }
     const newIso = dt.toISOString()

@@ -5,7 +5,7 @@ import { useEventById, adminSetEventActive } from '../../../../features/events'
 import { useEventApproval } from '../../../../features/event-approvals'
 import { notifyEventAttendees, buildNotifyMessage } from '../../../../features/event-notifications'
 import { useWebTenant } from '../../../../features/web-tenant'
-import { formatEventDay, formatEventTime } from '../../../../utils/eventDate'
+import { formatEventDay, formatEventTime, isPastEvent } from '../../../../utils/eventDate'
 import { MOCK_ADMIN_USER_ID } from '../../../../app/constants/currentUser'
 import { EventDetailsInfoTab } from './EventDetailsInfoTab'
 import { EventConfirmedPeopleTab } from './EventConfirmedPeopleTab'
@@ -221,19 +221,23 @@ export function WebEventDetailsDrawer({ eventId, onClose, onNotify }: WebEventDe
                   </>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => { setToggleError(null); setConfirmToggle(true) }}
-                      className={[
-                        'flex h-[45px] items-center gap-1 rounded-[5px] border px-5 text-[14px] font-semibold',
-                        event.is_active
-                          ? 'border-[#eb5757] text-[#eb5757]'
-                          : 'border-[#1e8449] text-[#1e8449]',
-                      ].join(' ')}
-                    >
-                      <MaterialIcon name={event.is_active ? 'block' : 'check_circle'} size={18} />
-                      {event.is_active ? 'Inativar' : 'Ativar'}
-                    </button>
+                    {/* Evento que já ocorreu: não pode inativar (ação removida).
+                        Reativar um evento passado inativo continua permitido. */}
+                    {!(isPastEvent(event.requested_at) && event.is_active) && (
+                      <button
+                        type="button"
+                        onClick={() => { setToggleError(null); setConfirmToggle(true) }}
+                        className={[
+                          'flex h-[45px] items-center gap-1 rounded-[5px] border px-5 text-[14px] font-semibold',
+                          event.is_active
+                            ? 'border-[#eb5757] text-[#eb5757]'
+                            : 'border-[#1e8449] text-[#1e8449]',
+                        ].join(' ')}
+                      >
+                        <MaterialIcon name={event.is_active ? 'block' : 'check_circle'} size={18} />
+                        {event.is_active ? 'Inativar' : 'Ativar'}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setEditing(true)}

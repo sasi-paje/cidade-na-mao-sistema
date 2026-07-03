@@ -284,6 +284,7 @@ begin
   if p_location is null or btrim(p_location) = '' then raise exception using message = 'Local é obrigatório.'; end if;
   if p_requested_at is null then raise exception using message = 'Data/hora é obrigatória.'; end if;
   if p_capacity is null or p_capacity <= 0 then raise exception using message = 'Capacidade deve ser maior que zero.'; end if;
+  if p_requested_at::date < current_date then raise exception using message = 'A data do evento não pode ser anterior ao dia de hoje.'; end if;
 
   select id into v_status_approved   from ref_slot_status       where code = 'approved';
   select id into v_decision_approved from ref_approval_decision where code = 'approved';
@@ -357,6 +358,7 @@ begin
   if p_location is null or btrim(p_location) = '' then raise exception using message = 'Local é obrigatório.'; end if;
   if p_requested_at is null then raise exception using message = 'Data/hora é obrigatória.'; end if;
   if p_capacity is null or p_capacity <= 0 then raise exception using message = 'Capacidade deve ser maior que zero.'; end if;
+  if p_requested_at::date < current_date then raise exception using message = 'A data do evento não pode ser anterior ao dia de hoje.'; end if;
 
   if not exists (select 1 from master_event e where e.id = p_id_event and e.id_tenant = v_tenant) then
     raise exception using message = 'Evento não encontrado no tenant.';

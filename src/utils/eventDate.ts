@@ -48,6 +48,33 @@ export function dateToDayKey(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+/** Dia de HOJE (local) no formato do input date (`YYYY-MM-DD`). */
+export function todayDayKey(): string {
+  return dateToDayKey(new Date())
+}
+
+/**
+ * true se `day` (`YYYY-MM-DD`) é ANTERIOR a hoje — usado para bloquear registro
+ * de eventos com data inferior ao dia atual. Strings vazias/ inválidas → false
+ * (a obrigatoriedade do campo é tratada à parte). Comparação lexicográfica de
+ * `YYYY-MM-DD` equivale à cronológica.
+ */
+export function isPastDay(day: string | null | undefined): boolean {
+  if (!day) return false
+  return day < todayDayKey()
+}
+
+/**
+ * true se o evento (ISO datetime) JÁ OCORREU — a data/hora do evento é anterior
+ * ao momento atual. Usado para congelar ações de um evento passado (ex.: não
+ * cancelar ingresso no mobile, não inativar no web). ISO inválido → false.
+ */
+export function isPastEvent(iso: string | null | undefined): boolean {
+  if (!iso) return false
+  const t = new Date(iso).getTime()
+  return !Number.isNaN(t) && t < Date.now()
+}
+
 /** Chave de dia local `YYYY-MM-DD` a partir de um ISO; null se inválido. */
 export function toDayKey(iso: string | null | undefined): string | null {
   if (!iso) return null
