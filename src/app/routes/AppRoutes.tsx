@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { PublicRoutes } from './PublicRoutes'
 import { AdminRoutes } from './AdminRoutes'
 import { AccessRequired } from './AccessRequired'
-import { PUBLIC_ROUTES } from './routePaths'
+import { USER_MOBILE_ROUTES } from './routePaths'
 
 /** Tela 404 simples. */
 function NotFound() {
@@ -12,7 +12,7 @@ function NotFound() {
         <h1 className="text-[22px] font-bold text-[#0f3255]">Página não encontrada</h1>
         <p className="mt-2 text-[14px] text-[#919191]">
           O endereço acessado não existe.{' '}
-          <a href={PUBLIC_ROUTES.events} className="font-semibold text-[#1e558b]">
+          <a href={USER_MOBILE_ROUTES.events} className="font-semibold text-[#1e558b]">
             Ir para eventos
           </a>
         </p>
@@ -33,7 +33,7 @@ function NotFound() {
 export function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to={PUBLIC_ROUTES.events} replace />} />
+      <Route path="/" element={<Navigate to={USER_MOBILE_ROUTES.events} replace />} />
 
       {PublicRoutes()}
       {AdminRoutes()}
