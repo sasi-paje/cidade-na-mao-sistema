@@ -22,7 +22,7 @@ import type { Equipment } from '../../equipment/types/equipment.types'
 import { getEvents, setEvents, genId, nowIso, resolveAsync } from '../mocks/event-storage.mock'
 import { seedEventMockData } from '../mocks/event.mock'
 import { buildEventFullView } from '../mocks/event-view.mock'
-import { supabase, hasSupabaseEnv, canUseMockFallback, isWebPublicMode } from '../../../lib/supabase/client'
+import { supabase, hasSupabaseEnv, canUseMockFallback } from '../../../lib/supabase/client'
 import { logSupabaseError, friendlyAdminError } from '../../../lib/supabase/supabase-error'
 
 // View admin (security_invoker): RLS filtra por tenant/role; anon → 0 linhas.
@@ -89,7 +89,7 @@ export async function adminCreateEvent(
   input: AdminCreateEventInput,
   tenantSlug?: string | null,
 ): Promise<AdminCreateEventResult> {
-  if (isWebPublicMode() && tenantSlug) {
+  if (tenantSlug) {
     const { data, error } = await supabase.rpc('web_create_event_by_tenant', {
       p_tenant_slug: tenantSlug,
       p_title: input.title,
@@ -167,7 +167,7 @@ export async function adminUpdateEvent(
   input: AdminUpdateEventInput,
   tenantSlug?: string | null,
 ): Promise<AdminCreateEventResult> {
-  if (isWebPublicMode() && tenantSlug) {
+  if (tenantSlug) {
     const { data, error } = await supabase.rpc('web_update_event_by_tenant', {
       p_tenant_slug: tenantSlug,
       p_id_event: input.id_event,
@@ -213,7 +213,7 @@ export async function adminSetEventActive(
   isActive: boolean,
   tenantSlug?: string | null,
 ): Promise<void> {
-  if (isWebPublicMode() && tenantSlug) {
+  if (tenantSlug) {
     const { error } = await supabase.rpc('web_set_event_active_by_tenant', {
       p_tenant_slug: tenantSlug,
       p_id_event: idEvent,
@@ -379,7 +379,7 @@ export async function getEventById(
   idEvent: string,
   tenantSlug?: string | null,
 ): Promise<EventFullView | null> {
-  if (isWebPublicMode() && tenantSlug) {
+  if (tenantSlug) {
     const { data, error } = await supabase.rpc('web_get_event_by_tenant', {
       p_tenant_slug: tenantSlug,
       p_id_event: idEvent,
@@ -510,7 +510,7 @@ export async function listWebEvents(
   filters?: WebEventFilters,
   tenantSlug?: string | null,
 ): Promise<EventFullView[]> {
-  if (isWebPublicMode() && tenantSlug) {
+  if (tenantSlug) {
     const { data, error } = await supabase.rpc('web_list_events_by_tenant', { p_tenant_slug: tenantSlug })
     if (error) {
       logSupabaseError('web_list_events_by_tenant', error)
