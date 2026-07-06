@@ -43,6 +43,36 @@ interface EquipmentRow {
   total_quantity?: number | null
   is_active?: boolean | null
   created_at?: string | null
+  updated_at?: string | null
+}
+
+/**
+ * Ordena por última atividade decrescente (mais recentes primeiro), para que
+ * equipamentos recém-criados OU recém-editados apareçam na primeira linha da
+ * primeira página. A chave é `updated_at ?? created_at`, com `created_at` como
+ * desempate. Aplicada em todos os caminhos de leitura (RPC por tenant, tabela
+ * direta e mock), pois a ordenação da RPC não é garantida pelo front.
+ * Itens sem qualquer data vão para o fim.
+ */
+function lastActivity(e: Equipment): string | undefined {
+  return e.updated_at ?? e.created_at
+}
+
+function sortByLastActivityDesc(items: Equipment[]): Equipment[] {
+  return [...items].sort((a, b) => {
+    const actA = lastActivity(a)
+    const actB = lastActivity(b)
+    if (actA && actB && actA !== actB) return actB.localeCompare(actA)
+    if (!actA && actB) return 1
+    if (actA && !actB) return -1
+    // desempate por created_at
+    const createdA = a.created_at
+    const createdB = b.created_at
+    if (createdA && createdB) return createdB.localeCompare(createdA)
+    if (!createdA && createdB) return 1
+    if (createdA && !createdB) return -1
+    return 0
+  })
 }
 
 function mapEquipmentRow(row: EquipmentRow): Equipment {
@@ -54,6 +84,7 @@ function mapEquipmentRow(row: EquipmentRow): Equipment {
     quantity: row.quantity ?? row.total_quantity ?? 0,
     is_active: row.is_active ?? true,
     created_at: row.created_at ?? undefined,
+    updated_at: row.updated_at ?? undefined,
   }
 }
 
@@ -70,24 +101,29 @@ export async function listEquipment(tenantSlug?: string | null): Promise<Equipme
       logSupabaseError('web_list_equipment_by_tenant', error)
       throw new Error(error.message || 'Não foi possível carregar os equipamentos.')
     }
-    return ((data ?? []) as Equipment[]).filter((e) => e.is_active)
+    return sortByLastActivityDesc(((data ?? []) as Equipment[]).filter((e) => e.is_active))
   }
   if (hasSupabaseEnv()) {
     try {
-      const { data, error } = await supabase.from(EQUIPMENT_TABLE).select('*').eq('is_active', true)
+      const { data, error } = await supabase
+        .from(EQUIPMENT_TABLE)
+        .select('*')
+        .eq('is_active', true)
+        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
       if (error) throw error
       const rows = (data ?? []) as EquipmentRow[]
-      if (rows.length > 0) return rows.map(mapEquipmentRow)
+      if (rows.length > 0) return sortByLastActivityDesc(rows.map(mapEquipmentRow))
       if (!canUseMockFallback()) return []
     } catch (e) {
       logSupabaseError('listEquipment', e)
       if (!canUseMockFallback()) throw e instanceof Error ? e : new Error('Não foi possível carregar os equipamentos.')
     }
   }
-  return resolveAsync(mockEquipments().filter((e) => e.is_active))
+  return resolveAsync(sortByLastActivityDesc(mockEquipments().filter((e) => e.is_active)))
 }
 
-/** Listagem admin: todos os equipamentos (ativos e inativos). */
+/** Listagem admin: todos os equipamentos (ativos e inativos), mais recentes primeiro. */
 export async function listAllEquipment(tenantSlug?: string | null): Promise<Equipment[]> {
   if (tenantSlug) {
     const { data, error } = await supabase.rpc('web_list_equipment_by_tenant', { p_tenant_slug: tenantSlug })
@@ -95,21 +131,25 @@ export async function listAllEquipment(tenantSlug?: string | null): Promise<Equi
       logSupabaseError('web_list_equipment_by_tenant', error)
       throw new Error(error.message || 'Não foi possível carregar os equipamentos.')
     }
-    return (data ?? []) as Equipment[]
+    return sortByLastActivityDesc((data ?? []) as Equipment[])
   }
   if (hasSupabaseEnv()) {
     try {
-      const { data, error } = await supabase.from(EQUIPMENT_TABLE).select('*')
+      const { data, error } = await supabase
+        .from(EQUIPMENT_TABLE)
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
       if (error) throw error
       const rows = (data ?? []) as EquipmentRow[]
-      if (rows.length > 0) return rows.map(mapEquipmentRow)
+      if (rows.length > 0) return sortByLastActivityDesc(rows.map(mapEquipmentRow))
       if (!canUseMockFallback()) return []
     } catch (e) {
       logSupabaseError('listAllEquipment', e)
       if (!canUseMockFallback()) throw e instanceof Error ? e : new Error('Não foi possível carregar os equipamentos.')
     }
   }
-  return resolveAsync(mockEquipments())
+  return resolveAsync(sortByLastActivityDesc(mockEquipments()))
 }
 
 export async function getEquipmentById(
@@ -175,13 +215,15 @@ export async function createEquipment(input: EquipmentInput, tenantSlug?: string
   }
   // fallback mock (dev)
   seedEventMockData()
+  const now = nowIso()
   const equipment: Equipment = {
     id: genId('eqp'),
     name: input.name.trim(),
     quantity: input.quantity,
     description: input.description.trim(),
     is_active: true,
-    created_at: nowIso(),
+    created_at: now,
+    updated_at: now,
   }
   setEquipments([...getEquipments(), equipment])
   return resolveAsync(equipment)
@@ -228,6 +270,7 @@ export async function updateEquipment(id: string, input: EquipmentInput, tenantS
         name: input.name.trim(),
         quantity: input.quantity,
         description: input.description.trim(),
+        updated_at: nowIso(),
       }
       return updated
     }),
