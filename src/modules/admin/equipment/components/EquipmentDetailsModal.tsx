@@ -13,17 +13,20 @@ import {
   type EquipmentFormErrors,
 } from './equipmentForm.model'
 
+type NotifyToast = (message: string, type: 'success' | 'error' | 'info' | 'warning') => void
+
 interface EquipmentDetailsModalProps {
   equipment: Equipment | null
   open: boolean
   onClose: () => void
   onSaved: () => void
+  onNotify?: NotifyToast
 }
 
 const label = 'mb-1 block text-[13px] font-semibold text-[#0f3255]'
 const value = 'text-[14px] text-[#4c4c4c]'
 
-export function EquipmentDetailsModal({ equipment, open, onClose, onSaved }: EquipmentDetailsModalProps) {
+export function EquipmentDetailsModal({ equipment, open, onClose, onSaved, onNotify }: EquipmentDetailsModalProps) {
   const { tenant } = useWebTenant()
   const [current, setCurrent] = useState<Equipment | null>(equipment)
   const [mode, setMode] = useState<'view' | 'edit'>('view')
@@ -67,6 +70,7 @@ export function EquipmentDetailsModal({ equipment, open, onClose, onSaved }: Equ
       setCurrent(updated)
       onSaved()
       setMode('view')
+      onNotify?.('Equipamento atualizado com sucesso.', 'success')
     } catch {
       /* mantém edição */
     } finally {
@@ -78,11 +82,16 @@ export function EquipmentDetailsModal({ equipment, open, onClose, onSaved }: Equ
     if (!current) return
     setToggleError(null)
     setToggling(true)
+    const wasActive = current.is_active
     try {
       await setEquipmentActive(current.id, !current.is_active, tenant)
       setCurrent({ ...current, is_active: !current.is_active })
       onSaved()
       setConfirmToggle(false)
+      onNotify?.(
+        wasActive ? 'Equipamento inativado com sucesso.' : 'Equipamento ativado com sucesso.',
+        'success',
+      )
     } catch (e) {
       // RPC é a fonte de verdade: mostra a mensagem (ex.: bloqueio por vínculo).
       setToggleError(e instanceof Error ? e.message : 'Não foi possível atualizar o equipamento.')

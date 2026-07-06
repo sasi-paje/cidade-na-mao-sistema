@@ -22,7 +22,7 @@ import {
 } from '../../events/mocks/event-storage.mock'
 import { seedEventMockData } from '../../events/mocks/event.mock'
 import { supabase, hasSupabaseEnv, canUseMockFallback } from '../../../lib/supabase/client'
-import { logSupabaseError, friendlyAdminError } from '../../../lib/supabase/supabase-error'
+import { logSupabaseError, friendlyAdminError, supabaseErrorMessage } from '../../../lib/supabase/supabase-error'
 
 const EQUIPMENT_TABLE = 'master_equipment'
 
@@ -195,7 +195,7 @@ export async function createEquipment(input: EquipmentInput, tenantSlug?: string
     })
     if (error) {
       logSupabaseError('web_create_equipment_by_tenant', error)
-      throw new Error(error.message || 'Não foi possível criar o equipamento.')
+      throw new Error(supabaseErrorMessage(error, 'Não foi possível criar o equipamento.'))
     }
     return mapEquipmentRow(data as EquipmentRow)
   }
@@ -210,7 +210,8 @@ export async function createEquipment(input: EquipmentInput, tenantSlug?: string
       return mapEquipmentRow(data as EquipmentRow)
     } catch (e) {
       logSupabaseError('createEquipment', e)
-      if (!canUseMockFallback()) throw new Error(friendlyAdminError(e, 'Não foi possível criar o equipamento.'))
+      if (!canUseMockFallback())
+        throw new Error(friendlyAdminError(e, supabaseErrorMessage(e, 'Não foi possível criar o equipamento.')))
     }
   }
   // fallback mock (dev)
@@ -240,7 +241,7 @@ export async function updateEquipment(id: string, input: EquipmentInput, tenantS
     })
     if (error) {
       logSupabaseError('web_update_equipment_by_tenant', error)
-      throw new Error(error.message || 'Não foi possível atualizar o equipamento.')
+      throw new Error(supabaseErrorMessage(error, 'Não foi possível atualizar o equipamento.'))
     }
     return mapEquipmentRow(data as EquipmentRow)
   }
@@ -256,7 +257,8 @@ export async function updateEquipment(id: string, input: EquipmentInput, tenantS
       return mapEquipmentRow(data as EquipmentRow)
     } catch (e) {
       logSupabaseError('updateEquipment', e)
-      if (!canUseMockFallback()) throw new Error(friendlyAdminError(e, 'Não foi possível atualizar o equipamento.'))
+      if (!canUseMockFallback())
+        throw new Error(friendlyAdminError(e, supabaseErrorMessage(e, 'Não foi possível atualizar o equipamento.')))
     }
   }
   // fallback mock (dev)
@@ -288,7 +290,7 @@ export async function setEquipmentActive(id: string, isActive: boolean, tenantSl
     })
     if (error) {
       logSupabaseError('web_set_equipment_active_by_tenant', error)
-      throw new Error(error.message || 'Não foi possível atualizar o equipamento.')
+      throw new Error(supabaseErrorMessage(error, 'Não foi possível atualizar o equipamento.'))
     }
     return
   }
@@ -299,7 +301,9 @@ export async function setEquipmentActive(id: string, isActive: boolean, tenantSl
       return
     } catch (e) {
       logSupabaseError('setEquipmentActive', e)
-      if (!canUseMockFallback()) throw new Error(friendlyAdminError(e, 'Não foi possível atualizar o equipamento.'))
+      // Erro de acesso → mensagem padronizada; demais (ex.: bloqueio por vínculo) → mensagem real do RPC.
+      if (!canUseMockFallback())
+        throw new Error(friendlyAdminError(e, supabaseErrorMessage(e, 'Não foi possível atualizar o equipamento.')))
     }
   }
   // fallback mock (dev)

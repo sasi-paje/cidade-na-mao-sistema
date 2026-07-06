@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useAllEquipment } from '../../../../features/equipment'
 import { useWebTenant } from '../../../../features/web-tenant'
 import type { Equipment } from '../../../../features/equipment'
+import { useToast, ToastContainer } from '../../../../shared/components'
 import { EquipmentToolbar } from '../components/EquipmentToolbar'
 import { EquipmentPagination } from '../components/EquipmentPagination'
 import { EquipmentTable } from '../components/EquipmentTable'
@@ -14,6 +15,7 @@ const PAGE_SIZE = 10
 export function WebEquipmentPage() {
   const { tenant } = useWebTenant()
   const { data: all, loading, error, refetch } = useAllEquipment(tenant)
+  const { toasts, showToast, removeToast } = useToast()
 
   const [search, setSearch] = useState('')
   const [onlyInactive, setOnlyInactive] = useState(false)
@@ -87,7 +89,10 @@ export function WebEquipmentPage() {
         open={selected !== null}
         onClose={() => setSelected(null)}
         onSaved={() => { void refetch() }}
+        onNotify={showToast}
       />
+
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
 
       {notice && (
         <div

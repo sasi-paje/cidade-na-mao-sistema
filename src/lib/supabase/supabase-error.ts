@@ -19,6 +19,26 @@ export const ADMIN_ACCESS_ERROR =
   'Não foi possível validar o acesso administrativo. Abra esta tela pelo sistema principal.'
 
 /**
+ * Extrai a melhor mensagem legível de um erro do Supabase/PostgREST. As RPCs
+ * usam `raise exception using message = '...'` com textos amigáveis (ex.: regra
+ * de bloqueio de inativação); esses precisam CHEGAR ao usuário, nunca serem
+ * trocados por um genérico. Tenta `message`, depois `details`/`hint`, e só então
+ * o `fallback`. Assim a causa real de uma falha nunca fica escondida.
+ */
+export function supabaseErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'object' && error) {
+    const e = error as { message?: unknown; details?: unknown; hint?: unknown }
+    const message = typeof e.message === 'string' ? e.message.trim() : ''
+    if (message) return message
+    const details = typeof e.details === 'string' ? e.details.trim() : ''
+    if (details) return details
+    const hint = typeof e.hint === 'string' ? e.hint.trim() : ''
+    if (hint) return hint
+  }
+  return fallback
+}
+
+/**
  * Traduz falhas de autenticação/permissão (sessão ausente, RLS, role ≠ admin,
  * JWT/401/403) para a mensagem amigável padronizada da área web. Como as telas
  * `/web/*` podem abrir espelhadas SEM sessão local, uma ação administrativa que
