@@ -75,13 +75,13 @@ export function CreateEquipmentModal({ open, onClose, onSaved }: CreateEquipment
         className="flex h-full w-full max-w-2xl flex-col bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 px-6 py-4">
+        <div className="flex shrink-0 items-center gap-2 px-6 py-4">
           <MaterialIcon name="inventory_2" size={24} className="text-[#1e558b]" />
           <h1 className="text-[20px] font-bold text-[#0f3255]">Criar Equipamento</h1>
         </div>
-        <div className="border-b border-[#e2e8f0]" />
+        <div className="shrink-0 border-b border-[#e2e8f0]" />
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           <EquipmentForm data={form} errors={errors} onChange={handleChange} />
           {hasErrors && (
             <p className="mt-3 text-[13px] text-[#eb5757]">Preencha todos os campos obrigatórios.</p>
@@ -91,8 +91,8 @@ export function CreateEquipmentModal({ open, onClose, onSaved }: CreateEquipment
           )}
         </div>
 
-        <div className="border-t border-[#e2e8f0]" />
-        <div className="flex items-center justify-between gap-3 px-6 py-4">
+        <div className="shrink-0 border-t border-[#e2e8f0]" />
+        <div className="flex shrink-0 items-center justify-between gap-3 px-6 py-4">
           <button
             type="button"
             onClick={handleClose}

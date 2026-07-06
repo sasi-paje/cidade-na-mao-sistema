@@ -53,6 +53,7 @@ export function PublicRoutes() {
         <Route path={LEADER_MOBILE_ROUTES.requestedEventDetails} element={<EventRequestDetailsPage />} />
         <Route path={LEADER_MOBILE_ROUTES.requestEvent} element={<RequestEventPage />} />
         <Route path={LEADER_MOBILE_ROUTES.events} element={<PublicEventsPage />} />
+        <Route path={LEADER_MOBILE_ROUTES.eventDetails} element={<PublicEventDetailsPage />} />
       </Route>
 
       {/* Redirects de compatibilidade (fora do guard; preservam ?token=) */}

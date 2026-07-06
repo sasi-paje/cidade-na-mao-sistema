@@ -1,21 +1,33 @@
 import { useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { MaterialIcon } from '../../../shared/components/MaterialIcon'
 import { useEventById } from '../../../features/events'
 import { useEventAttendance } from '../../../features/event-attendance'
 import { useCurrentUser } from '../../../features/auth'
 import { useMobileToken } from '../../../features/sasi-token'
-import { USER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
+import { USER_MOBILE_ROUTES, LEADER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
 import { isPastEvent } from '../../../utils/eventDate'
 import { EventBanner, EventDateLine } from './eventVisuals'
 import { MobileDialog } from './MobileDialog'
 
-/** `/m/usuario/eventos/:id` — detalhe do evento + confirmar/cancelar participação. */
+/**
+ * `/m/usuario/eventos/:id` e `/m/lider/eventos/:id` — detalhe do evento +
+ * confirmar/cancelar participação. A navegação (voltar / pós-confirmação)
+ * respeita o FLUXO da URL para não jogar o líder no fluxo de usuário comum.
+ */
 export function PublicEventDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { withMobileToken } = useMobileToken()
   const [modal, setModal] = useState<'confirm' | 'cancel' | null>(null)
+
+  // Fluxo atual (líder ou usuário) — define para onde "Voltar" e o pós-confirmar
+  // retornam, mantendo o usuário no mesmo fluxo.
+  const isLeaderFlow = pathname.startsWith('/m/lider')
+  const eventsPath = isLeaderFlow ? LEADER_MOBILE_ROUTES.events : USER_MOBILE_ROUTES.events
+  // Fluxo líder não tem "Meus Eventos": após confirmar, volta à lista do líder.
+  const afterConfirmPath = isLeaderFlow ? LEADER_MOBILE_ROUTES.events : USER_MOBILE_ROUTES.myEvents
 
   const { masterUserId, name, email } = useCurrentUser()
   const { data: event, loading, error, refetch: refetchEvent } = useEventById(id)
@@ -37,7 +49,7 @@ export function PublicEventDetailsPage() {
         <p className="text-[15px] text-[#eb5757]">Evento não encontrado.</p>
         <button
           type="button"
-          onClick={() => navigate(withMobileToken(USER_MOBILE_ROUTES.events))}
+          onClick={() => navigate(withMobileToken(eventsPath))}
           className="mt-3 text-[14px] font-semibold text-[#1e558b]"
         >
           Voltar para eventos
@@ -51,7 +63,7 @@ export function PublicEventDetailsPage() {
     try {
       await confirm()
       // Sucesso (Figma 78-5298): vai para "Meus Eventos", preservando o token.
-      navigate(withMobileToken(USER_MOBILE_ROUTES.myEvents), { replace: true })
+      navigate(withMobileToken(afterConfirmPath), { replace: true })
     } catch {
       /* erro: attendanceError exibido na tela; permanece e NÃO redireciona */
     }
@@ -105,7 +117,7 @@ export function PublicEventDetailsPage() {
         <div className="mt-1 flex flex-row gap-2">
           <button
             type="button"
-            onClick={() => navigate(withMobileToken(USER_MOBILE_ROUTES.events))}
+            onClick={() => navigate(withMobileToken(eventsPath))}
             className="h-[46px] flex-1 rounded-[8px] border-[1.5px] border-[#1e558b] bg-white text-[15px] font-bold text-[#1e558b]"
           >
             Voltar

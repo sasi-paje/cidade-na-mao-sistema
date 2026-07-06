@@ -434,6 +434,34 @@ export async function getEventById(
 }
 
 /** Público: eventos aprovados e ativos via view pública (anon-safe). */
+/**
+ * Ordena o feed público "próximos de acontecer primeiro":
+ *  - eventos FUTUROS em ordem ascendente por `requested_at` (o mais próximo de
+ *    acontecer fica no topo);
+ *  - eventos JÁ OCORRIDOS vão para o fim, entre si os mais recentes primeiro;
+ *  - itens sem data válida ficam por último.
+ * O corte usa a data/hora de início do evento (`requested_at`) vs. agora.
+ */
+function sortUpcomingFirst(events: EventFullView[]): EventFullView[] {
+  const now = Date.now()
+  const timeOf = (e: EventFullView): number | null => {
+    const t = new Date(e.requested_at).getTime()
+    return Number.isNaN(t) ? null : t
+  }
+  return [...events].sort((a, b) => {
+    const ta = timeOf(a)
+    const tb = timeOf(b)
+    if (ta === null && tb === null) return 0
+    if (ta === null) return 1
+    if (tb === null) return -1
+    const aUpcoming = ta >= now
+    const bUpcoming = tb >= now
+    if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1 // futuro antes de passado
+    if (aUpcoming) return ta - tb // futuros: ascendente (mais próximo primeiro)
+    return tb - ta // passados: descendente (mais recente primeiro)
+  })
+}
+
 export async function listPublicApprovedEvents(): Promise<EventFullView[]> {
   if (hasSupabaseEnv()) {
     try {
@@ -443,7 +471,7 @@ export async function listPublicApprovedEvents(): Promise<EventFullView[]> {
         .order('requested_at', { ascending: true })
       if (error) throw error
       const rows = (data ?? []) as PublicEventRow[]
-      if (rows.length > 0) return rows.map(mapPublicRow)
+      if (rows.length > 0) return sortUpcomingFirst(rows.map(mapPublicRow))
       // Produção: lista real (mesmo vazia) — sem mock.
       if (!canUseMockFallback()) return []
     } catch (e) {
@@ -451,7 +479,7 @@ export async function listPublicApprovedEvents(): Promise<EventFullView[]> {
       if (!canUseMockFallback()) throw e instanceof Error ? e : new Error('Não foi possível carregar os eventos.')
     }
   }
-  return resolveAsync(mockViews().filter((v) => v.slot_status === 'approved' && v.is_active))
+  return resolveAsync(sortUpcomingFirst(mockViews().filter((v) => v.slot_status === 'approved' && v.is_active)))
 }
 
 /** Líder: solicitações criadas pelo próprio usuário. */

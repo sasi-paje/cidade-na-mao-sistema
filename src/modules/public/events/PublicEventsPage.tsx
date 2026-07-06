@@ -1,10 +1,10 @@
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { usePublicEvents } from '../../../features/events'
 import type { EventFullView } from '../../../features/events'
 import { useMyAttendances } from '../../../features/event-attendance'
 import { useCurrentUser } from '../../../features/auth'
 import { useMobileToken } from '../../../features/sasi-token'
-import { buildPath, USER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
+import { buildPath, USER_MOBILE_ROUTES, LEADER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
 import { formatDayMonthShort } from '../../../utils/eventDate'
 import { EventCard } from './EventCard'
 import { EventsTabs } from './EventsTabs'
@@ -15,8 +15,14 @@ import { useEventDateFilter } from './useEventDateFilter'
 /** `/m/usuario/eventos` (e `/m/lider/eventos`) — lista de eventos aprovados (público) com filtro por data. */
 export function PublicEventsPage() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { withMobileToken } = useMobileToken()
   const { masterUserId } = useCurrentUser()
+  // Mantém o usuário no MESMO fluxo (líder ou usuário) ao abrir o detalhe.
+  const isLeaderFlow = pathname.startsWith('/m/lider')
+  const detailPattern = isLeaderFlow
+    ? LEADER_MOBILE_ROUTES.eventDetails
+    : USER_MOBILE_ROUTES.eventDetails
   const { data, loading, error } = usePublicEvents()
   const { data: attendances } = useMyAttendances(masterUserId)
   const { filterDay, open, setOpen, eventDateKeys, filtered, initialMonth, select, clear } =
@@ -26,7 +32,7 @@ export function PublicEventsPage() {
   const confirmedKeys = new Set(attendances.map((a) => `${a.id_event}::${a.id_slot}`))
 
   const openEvent = (event: EventFullView) => {
-    navigate(withMobileToken(buildPath(USER_MOBILE_ROUTES.eventDetails, { id: event.id_event })))
+    navigate(withMobileToken(buildPath(detailPattern, { id: event.id_event })))
   }
 
   return (

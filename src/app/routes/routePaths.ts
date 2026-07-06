@@ -38,6 +38,8 @@ export const LEADER_MOBILE_ROUTES = {
   requestEvent: '/m/lider/solicitar-evento',
   /** Todos os eventos (visão do líder) */
   events: '/m/lider/eventos',
+  /** Detalhe de um evento (mantém o líder no próprio fluxo) */
+  eventDetails: '/m/lider/eventos/:id',
 } as const
 
 /**
