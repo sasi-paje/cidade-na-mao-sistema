@@ -37,6 +37,8 @@ export interface EventFullView {
   slot_status: SlotStatusCode
   /** id_user que criou o evento (id_user de master_event) */
   created_by: string
+  /** Data de cadastro do evento (master_event.created_at) — usada na ordenação do feed. */
+  created_at?: string
   confirmed_count: number
   equipment_requests?: EventEquipmentRequest[]
 }
