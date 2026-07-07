@@ -296,6 +296,7 @@ function mapPublicRow(row: PublicEventRow): EventFullView {
     capacity: row.capacity ?? 0,
     slot_status: row.slot_status,
     created_by: '', // não exposto na view pública
+    created_at: row.created_at,
     confirmed_count: row.confirmed_count ?? 0,
     equipment_requests: undefined,
   }
@@ -316,6 +317,7 @@ function mapEventRow(row: EventViewRow, confirmedCount: number): EventFullView {
     capacity: row.capacity ?? 0,
     slot_status: row.slot_status,
     created_by: row.id_user,
+    created_at: row.created_at,
     confirmed_count: confirmedCount,
     equipment_requests: undefined, // não está na view; idem
   }
@@ -433,45 +435,89 @@ export async function getEventById(
   return resolveAsync(found)
 }
 
-/** Público: eventos aprovados e ativos via view pública (anon-safe). */
+/** Início do dia local em ms — corte "futuro/em andamento" vs "passado". */
+function startOfTodayMs(): number {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+/** Desempate: `created_at` DESC quando ambos têm; senão `title` ASC. */
+function tieBreakEvent(a: EventFullView, b: EventFullView): number {
+  if (a.created_at && b.created_at && a.created_at !== b.created_at) {
+    return b.created_at.localeCompare(a.created_at)
+  }
+  return (a.title ?? '').localeCompare(b.title ?? '')
+}
+
 /**
- * Ordena o feed público "próximos de acontecer primeiro":
- *  - eventos FUTUROS em ordem ascendente por `requested_at` (o mais próximo de
- *    acontecer fica no topo);
- *  - eventos JÁ OCORRIDOS vão para o fim, entre si os mais recentes primeiro;
- *  - itens sem data válida ficam por último.
- * O corte usa a data/hora de início do evento (`requested_at`) vs. agora.
+ * Ordena a listagem pública por PROXIMIDADE da data do evento (`requested_at`):
+ *  - eventos de hoje/futuros (em andamento inclusos) primeiro, ASC — o mais
+ *    próximo de acontecer no topo;
+ *  - eventos passados (dias anteriores) vão para o fim (mais recentes primeiro);
+ *  - eventos sem data válida ficam por último (não quebram a tela);
+ *  - empate na data/hora → `created_at` DESC (ou `title` ASC).
+ * NÃO usa `created_at` como chave primária: esta tela é lista de eventos
+ * futuros, não feed de novidades.
  */
-function sortUpcomingFirst(events: EventFullView[]): EventFullView[] {
-  const now = Date.now()
+function sortByEventProximity(events: EventFullView[]): EventFullView[] {
+  const today = startOfTodayMs()
   const timeOf = (e: EventFullView): number | null => {
     const t = new Date(e.requested_at).getTime()
     return Number.isNaN(t) ? null : t
   }
+  // bucket: 0 = hoje/futuro, 1 = passado, 2 = sem data
+  const bucket = (t: number | null): number => (t === null ? 2 : t >= today ? 0 : 1)
   return [...events].sort((a, b) => {
     const ta = timeOf(a)
     const tb = timeOf(b)
-    if (ta === null && tb === null) return 0
-    if (ta === null) return 1
-    if (tb === null) return -1
-    const aUpcoming = ta >= now
-    const bUpcoming = tb >= now
-    if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1 // futuro antes de passado
-    if (aUpcoming) return ta - tb // futuros: ascendente (mais próximo primeiro)
-    return tb - ta // passados: descendente (mais recente primeiro)
+    const ba = bucket(ta)
+    const bb = bucket(tb)
+    if (ba !== bb) return ba - bb
+    if (ba === 0) return ta! - tb! || tieBreakEvent(a, b) // futuros: ASC
+    if (ba === 1) return tb! - ta! || tieBreakEvent(a, b) // passados: mais recente primeiro
+    return tieBreakEvent(a, b) // sem data
   })
 }
 
-export async function listPublicApprovedEvents(): Promise<EventFullView[]> {
+/**
+ * Colunas do card do feed. IMPORTANTE: `banner_url` é DELIBERADAMENTE omitido —
+ * os banners estão em base64 no banco (~430 KB cada) e traziam o payload para
+ * ~20 MB, travando a lista. Sem o banner, a lista fica leve. O card mostra um
+ * placeholder; a foto real é carregada no DETALHE do evento (getEventById).
+ * Quando os banners migrarem para Supabase Storage (URLs leves), dá para trazer
+ * `banner_url` de volta ao card com custo baixo.
+ */
+const PUBLIC_FEED_COLUMNS =
+  'id,id_slot,title,location,is_active,requested_at,created_at,slot_status,confirmed_count'
+
+export interface PublicEventsOptions {
+  /** Só eventos de hoje em diante (feed público de "próximos"). Padrão: false. */
+  upcomingOnly?: boolean
+  /** Teto de linhas (protege a performance do feed público). Sem limite se ausente. */
+  limit?: number
+}
+
+/**
+ * Público: eventos aprovados e ativos via view pública (anon-safe), ordenados
+ * por proximidade da data do evento (ver `sortByEventProximity`).
+ *  - `upcomingOnly`: filtra para hoje/futuro (tela pública = lista de futuros).
+ *  - `limit`: teto de linhas (feed público). `MyEventsPage` chama SEM opções,
+ *    pois precisa de todos os eventos (inclusive passados) para cruzar presenças.
+ */
+export async function listPublicApprovedEvents(options?: PublicEventsOptions): Promise<EventFullView[]> {
+  const { upcomingOnly = false, limit } = options ?? {}
   if (hasSupabaseEnv()) {
     try {
-      const { data, error } = await supabase
-        .from(PUBLIC_EVENT_VIEW)
-        .select('*')
-        .order('requested_at', { ascending: true })
+      let query = supabase.from(PUBLIC_EVENT_VIEW).select(PUBLIC_FEED_COLUMNS)
+      if (upcomingOnly) query = query.gte('requested_at', new Date(startOfTodayMs()).toISOString())
+      // Ordena no backend por data do evento (ASC); o front refina o desempate.
+      query = query.order('requested_at', { ascending: true })
+      if (limit) query = query.limit(limit)
+      const { data, error } = await query
       if (error) throw error
       const rows = (data ?? []) as PublicEventRow[]
-      if (rows.length > 0) return sortUpcomingFirst(rows.map(mapPublicRow))
+      if (rows.length > 0) return sortByEventProximity(rows.map(mapPublicRow))
       // Produção: lista real (mesmo vazia) — sem mock.
       if (!canUseMockFallback()) return []
     } catch (e) {
@@ -479,7 +525,16 @@ export async function listPublicApprovedEvents(): Promise<EventFullView[]> {
       if (!canUseMockFallback()) throw e instanceof Error ? e : new Error('Não foi possível carregar os eventos.')
     }
   }
-  return resolveAsync(sortUpcomingFirst(mockViews().filter((v) => v.slot_status === 'approved' && v.is_active)))
+  const today = startOfTodayMs()
+  let mock = mockViews().filter((v) => v.slot_status === 'approved' && v.is_active)
+  if (upcomingOnly) {
+    mock = mock.filter((v) => {
+      const t = new Date(v.requested_at).getTime()
+      return Number.isNaN(t) || t >= today
+    })
+  }
+  const sorted = sortByEventProximity(mock)
+  return resolveAsync(limit ? sorted.slice(0, limit) : sorted)
 }
 
 /** Líder: solicitações criadas pelo próprio usuário. */

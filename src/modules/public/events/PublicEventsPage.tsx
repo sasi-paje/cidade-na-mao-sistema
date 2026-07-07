@@ -23,7 +23,9 @@ export function PublicEventsPage() {
   const detailPattern = isLeaderFlow
     ? LEADER_MOBILE_ROUTES.eventDetails
     : USER_MOBILE_ROUTES.eventDetails
-  const { data, loading, error } = usePublicEvents()
+  // Tela pública = lista de eventos futuros, por proximidade da data (ASC).
+  // Teto protege a performance; MyEventsPage chama sem opções (precisa dos passados).
+  const { data, loading, error } = usePublicEvents({ upcomingOnly: true, limit: 100 })
   const { data: attendances } = useMyAttendances(masterUserId)
   const { filterDay, open, setOpen, eventDateKeys, filtered, initialMonth, select, clear } =
     useEventDateFilter(data)
