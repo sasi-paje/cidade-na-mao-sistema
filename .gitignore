@@ -11,3 +11,6 @@ coverage/
 
 .claude/
 .mcp.json
+
+.vscode/
+supabase/.temp/
