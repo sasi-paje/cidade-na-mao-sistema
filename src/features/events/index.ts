@@ -15,6 +15,7 @@ export {
   adminUpdateEvent,
   adminSetEventActive,
   getEventById,
+  getPublicEventBanner,
   listPublicApprovedEvents,
   listLeaderEventRequests,
   listPendingEventRequests,
@@ -26,6 +27,7 @@ export type { AdminCreateEventInput, AdminCreateEventResult, AdminUpdateEventInp
 
 // Hooks
 export { usePublicEvents } from './hooks/usePublicEvents'
+export { useLazyEventBanner } from './hooks/useLazyEventBanner'
 export { useEventById } from './hooks/useEventById'
 export { useEventRequests } from './hooks/useEventRequests'
 export { useWebEvents } from './hooks/useWebEvents'

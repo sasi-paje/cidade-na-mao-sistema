@@ -24,6 +24,7 @@ import { seedEventMockData } from '../mocks/event.mock'
 import { buildEventFullView } from '../mocks/event-view.mock'
 import { supabase, hasSupabaseEnv, canUseMockFallback } from '../../../lib/supabase/client'
 import { logSupabaseError, friendlyAdminError } from '../../../lib/supabase/supabase-error'
+import { uploadBannerIfDataUri } from './banner.storage'
 
 // View admin (security_invoker): RLS filtra por tenant/role; anon → 0 linhas.
 const EVENT_VIEW = 'v_master_event_full'
@@ -89,12 +90,14 @@ export async function adminCreateEvent(
   input: AdminCreateEventInput,
   tenantSlug?: string | null,
 ): Promise<AdminCreateEventResult> {
+  // Data URI → sobe pro Storage e usa a URL leve; URL/null passam direto.
+  const banner_url = await uploadBannerIfDataUri(input.banner_url)
   if (tenantSlug) {
     const { data, error } = await supabase.rpc('web_create_event_by_tenant', {
       p_tenant_slug: tenantSlug,
       p_title: input.title,
       p_description: input.description,
-      p_banner_url: input.banner_url,
+      p_banner_url: banner_url,
       p_location: input.location,
       p_requested_at: input.requested_at,
       p_capacity: input.capacity,
@@ -109,7 +112,7 @@ export async function adminCreateEvent(
   const { data, error } = await supabase.rpc('admin_create_event', {
     p_title: input.title,
     p_description: input.description,
-    p_banner_url: input.banner_url,
+    p_banner_url: banner_url,
     p_location: input.location,
     p_requested_at: input.requested_at,
     p_capacity: input.capacity,
@@ -129,10 +132,11 @@ export async function adminCreateEvent(
  * falha — o chamador trata o erro na UI.
  */
 export async function requestEvent(input: AdminCreateEventInput): Promise<AdminCreateEventResult> {
+  const banner_url = await uploadBannerIfDataUri(input.banner_url)
   const { data, error } = await supabase.rpc('request_event', {
     p_title: input.title,
     p_description: input.description,
-    p_banner_url: input.banner_url,
+    p_banner_url: banner_url,
     p_location: input.location,
     p_requested_at: input.requested_at,
     p_capacity: input.capacity,
@@ -167,6 +171,7 @@ export async function adminUpdateEvent(
   input: AdminUpdateEventInput,
   tenantSlug?: string | null,
 ): Promise<AdminCreateEventResult> {
+  const banner_url = await uploadBannerIfDataUri(input.banner_url)
   if (tenantSlug) {
     const { data, error } = await supabase.rpc('web_update_event_by_tenant', {
       p_tenant_slug: tenantSlug,
@@ -174,7 +179,7 @@ export async function adminUpdateEvent(
       p_id_slot: input.id_slot,
       p_title: input.title,
       p_description: input.description,
-      p_banner_url: input.banner_url,
+      p_banner_url: banner_url,
       p_location: input.location,
       p_requested_at: input.requested_at,
       p_capacity: input.capacity,
@@ -191,7 +196,7 @@ export async function adminUpdateEvent(
     p_id_slot: input.id_slot,
     p_title: input.title,
     p_description: input.description,
-    p_banner_url: input.banner_url,
+    p_banner_url: banner_url,
     p_location: input.location,
     p_requested_at: input.requested_at,
     p_capacity: input.capacity,
@@ -433,6 +438,33 @@ export async function getEventById(
   }
   const found = mockViews().find((v) => v.id_event === idEvent) ?? null
   return resolveAsync(found)
+}
+
+/**
+ * Busca APENAS o `banner_url` de um evento (view pública). O feed omite o banner
+ * de propósito (base64 pesado, até ~10MB); os cards carregam o seu sob demanda
+ * (lazy) via `useLazyEventBanner`. Fail-closed: erro/ausência → null (sem imagem,
+ * nunca dado falso).
+ */
+export async function getPublicEventBanner(eventId: string): Promise<string | null> {
+  if (!eventId) return null
+  if (hasSupabaseEnv()) {
+    try {
+      const { data, error } = await supabase
+        .from(PUBLIC_EVENT_VIEW)
+        .select('banner_url')
+        .eq('id', eventId)
+        .limit(1)
+      if (error) throw error
+      const rows = (data ?? []) as Array<{ banner_url: string | null }>
+      return rows[0]?.banner_url ?? null
+    } catch (e) {
+      logSupabaseError('getPublicEventBanner', e)
+      if (!canUseMockFallback()) return null
+    }
+  }
+  const found = mockViews().find((v) => v.id_event === eventId)
+  return resolveAsync(found?.banner_url ?? null)
 }
 
 /** Início do dia local em ms — corte "futuro/em andamento" vs "passado". */
