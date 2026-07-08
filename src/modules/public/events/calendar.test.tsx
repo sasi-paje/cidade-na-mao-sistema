@@ -120,4 +120,22 @@ describe('useEventDateFilter', () => {
     expect(result.current.filtered).toHaveLength(2)
     expect(result.current.filterDay).toBeNull()
   })
+
+  it('upcomingByDefault: esconde passados na lista, mas mostra ao selecionar a data', () => {
+    const now = new Date()
+    const past = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 10, 12, 0, 0)
+    const future = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 10, 12, 0, 0)
+    const mixed = [ev('past', past.toISOString()), ev('future', future.toISOString())]
+
+    const { result } = renderHook(() => useEventDateFilter(mixed, { upcomingByDefault: true }))
+
+    // Sem filtro: só o evento futuro aparece na lista.
+    expect(result.current.filtered.map((e) => e.id_event)).toEqual(['future'])
+    // Mas o dia passado continua marcado no calendário (ponto).
+    expect(result.current.eventDateKeys.has(dateToDayKey(past))).toBe(true)
+
+    // Ao selecionar o dia do evento passado, ele passa a ser exibido.
+    act(() => result.current.select(past))
+    expect(result.current.filtered.map((e) => e.id_event)).toEqual(['past'])
+  })
 })

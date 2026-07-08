@@ -23,12 +23,13 @@ export function PublicEventsPage() {
   const detailPattern = isLeaderFlow
     ? LEADER_MOBILE_ROUTES.eventDetails
     : USER_MOBILE_ROUTES.eventDetails
-  // Tela pública = lista de eventos futuros, por proximidade da data (ASC).
-  // Teto protege a performance; MyEventsPage chama sem opções (precisa dos passados).
-  const { data, loading, error } = usePublicEvents({ upcomingOnly: true, limit: 100 })
+  // Busca TODOS os eventos aprovados/ativos (inclusive passados) para alimentar o
+  // calendário: a lista padrão mostra só os próximos (upcomingByDefault), mas ao
+  // selecionar uma data passada o evento daquele dia aparece.
+  const { data, loading, error } = usePublicEvents()
   const { data: attendances } = useMyAttendances(masterUserId)
   const { filterDay, open, setOpen, eventDateKeys, filtered, initialMonth, select, clear } =
-    useEventDateFilter(data)
+    useEventDateFilter(data, { upcomingByDefault: true })
 
   // Marca no card os eventos em que o usuário já se inscreveu (id_event + id_slot).
   const confirmedKeys = new Set(attendances.map((a) => `${a.id_event}::${a.id_slot}`))
