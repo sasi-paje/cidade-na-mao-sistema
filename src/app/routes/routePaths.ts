@@ -40,6 +40,8 @@ export const LEADER_MOBILE_ROUTES = {
   events: '/m/lider/eventos',
   /** Detalhe de um evento (mantém o líder no próprio fluxo) */
   eventDetails: '/m/lider/eventos/:id',
+  /** Participações do líder (presença confirmada) */
+  myEvents: '/m/lider/meus-eventos',
 } as const
 
 /**

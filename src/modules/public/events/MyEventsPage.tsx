@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { usePublicEvents } from '../../../features/events'
 import type { EventFullView } from '../../../features/events'
 import { useMyAttendances } from '../../../features/event-attendance'
 import { useCurrentUser } from '../../../features/auth'
 import { useMobileToken } from '../../../features/sasi-token'
-import { buildPath, USER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
+import { buildPath, USER_MOBILE_ROUTES, LEADER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
 import { EventCard } from './EventCard'
 import { EventsTabs } from './EventsTabs'
 import { EventsPanel } from './EventsPanel'
@@ -34,10 +34,16 @@ function PastToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   )
 }
 
-/** `/m/usuario/meus-eventos` — participações confirmadas do usuário autenticado. */
+/** `/m/usuario/meus-eventos` (e `/m/lider/meus-eventos`) — participações confirmadas do usuário autenticado. */
 export function MyEventsPage() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
   const { withMobileToken } = useMobileToken()
+  // Mantém o usuário no MESMO fluxo (líder ou usuário) ao abrir o detalhe.
+  const isLeaderFlow = pathname.startsWith('/m/lider')
+  const detailPattern = isLeaderFlow
+    ? LEADER_MOBILE_ROUTES.eventDetails
+    : USER_MOBILE_ROUTES.eventDetails
   const { masterUserId } = useCurrentUser()
   const { data: attendances, loading: loadingAtt, error: errorAtt } = useMyAttendances(masterUserId)
   const { data: allEvents, loading: loadingEvents, error: errorEvents } = usePublicEvents()
@@ -63,7 +69,7 @@ export function MyEventsPage() {
   const hiddenPastCount = confirmedAll.length - myEvents.length
 
   const openEvent = (event: EventFullView) => {
-    navigate(withMobileToken(buildPath(USER_MOBILE_ROUTES.eventDetails, { id: event.id_event })))
+    navigate(withMobileToken(buildPath(detailPattern, { id: event.id_event })))
   }
 
   return (

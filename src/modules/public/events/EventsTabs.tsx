@@ -17,6 +17,7 @@ const USER_TABS: TabDef[] = [
 const LEADER_TABS: TabDef[] = [
   { label: 'Eventos Solicitados', path: LEADER_MOBILE_ROUTES.requestedEvents },
   { label: 'Todos os eventos', path: LEADER_MOBILE_ROUTES.events },
+  { label: 'Meus Eventos', path: LEADER_MOBILE_ROUTES.myEvents },
   { label: 'Solicitar Evento', path: LEADER_MOBILE_ROUTES.requestEvent },
 ]
 
