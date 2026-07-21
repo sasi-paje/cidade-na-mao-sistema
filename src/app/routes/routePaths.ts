@@ -11,37 +11,41 @@
  */
 
 /**
- * Rotas mobile do FLUXO DE USUÁRIO COMUM (`/m/usuario/*`).
+ * Rotas mobile do FLUXO DE USUÁRIO COMUM (`/m/:tenant/usuario/*`).
  * O fluxo é definido pelo LINK acessado, não por cargo/role. Exige apenas
  * token/sessão válidos (ver `MobileTokenRoute`).
+ *
+ * O tenant vive no PATH (`/m/:tenant/...`), não na query — o deep-link SASI
+ * chega como `/m/<tenant>/usuario/eventos?sasi-token=...` (um único `?`). Estes
+ * padrões contêm `:tenant`; a navegação substitui pelo slug via `withMobileToken`.
  */
 export const USER_MOBILE_ROUTES = {
   /** Lista de todos os eventos */
-  events: '/m/usuario/eventos',
+  events: '/m/:tenant/usuario/eventos',
   /** Detalhe de um evento */
-  eventDetails: '/m/usuario/eventos/:id',
+  eventDetails: '/m/:tenant/usuario/eventos/:id',
   /** Participações do usuário */
-  myEvents: '/m/usuario/meus-eventos',
+  myEvents: '/m/:tenant/usuario/meus-eventos',
 } as const
 
 /**
- * Rotas mobile do FLUXO DE LÍDER DE COMUNIDADE (`/m/lider/*`).
+ * Rotas mobile do FLUXO DE LÍDER DE COMUNIDADE (`/m/:tenant/lider/*`).
  * O fluxo é definido pelo LINK acessado, não por cargo/role. Exige apenas
  * token/sessão válidos (ver `MobileTokenRoute`).
  */
 export const LEADER_MOBILE_ROUTES = {
   /** Solicitações de evento do líder */
-  requestedEvents: '/m/lider/eventos-solicitados',
+  requestedEvents: '/m/:tenant/lider/eventos-solicitados',
   /** Detalhe de uma solicitação */
-  requestedEventDetails: '/m/lider/eventos-solicitados/:id',
+  requestedEventDetails: '/m/:tenant/lider/eventos-solicitados/:id',
   /** Formulário de solicitação de evento */
-  requestEvent: '/m/lider/solicitar-evento',
+  requestEvent: '/m/:tenant/lider/solicitar-evento',
   /** Todos os eventos (visão do líder) */
-  events: '/m/lider/eventos',
+  events: '/m/:tenant/lider/eventos',
   /** Detalhe de um evento (mantém o líder no próprio fluxo) */
-  eventDetails: '/m/lider/eventos/:id',
+  eventDetails: '/m/:tenant/lider/eventos/:id',
   /** Participações do líder (presença confirmada) */
-  myEvents: '/m/lider/meus-eventos',
+  myEvents: '/m/:tenant/lider/meus-eventos',
 } as const
 
 /**
@@ -89,4 +93,22 @@ export function buildPath(pattern: string, params: Record<string, string | numbe
     (path, [key, value]) => path.replace(`:${key}`, String(value)),
     pattern,
   )
+}
+
+/**
+ * Remove o segmento `:tenant` de um padrão mobile (`/m/:tenant/usuario/...` →
+ * `/m/usuario/...`). Usado para derivar os caminhos SEM tenant que alimentam o
+ * injetor de tenant e os alvos dos redirects legados.
+ */
+export function stripTenant(pattern: string): string {
+  return pattern.replace('/:tenant', '')
+}
+
+/**
+ * Indica se um pathname mobile pertence ao FLUXO DE LÍDER (`/m/:tenant/lider/*`).
+ * Como o tenant fica no meio do path, não dá para usar `startsWith('/m/lider')`;
+ * detectamos o segmento `/lider/` (ou final `/lider`) em qualquer posição.
+ */
+export function isLeaderPath(pathname: string): boolean {
+  return /\/lider(\/|$)/.test(pathname)
 }

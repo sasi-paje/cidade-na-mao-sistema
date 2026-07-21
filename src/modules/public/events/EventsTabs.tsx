@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { USER_MOBILE_ROUTES, LEADER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
+import { USER_MOBILE_ROUTES, LEADER_MOBILE_ROUTES, isLeaderPath } from '../../../app/routes/routePaths'
 import { useMobileToken } from '../../../features/sasi-token'
 
 interface TabDef {
@@ -31,18 +31,20 @@ export function EventsTabs() {
   const { pathname } = useLocation()
   const { withMobileToken } = useMobileToken()
 
-  const isLeaderFlow = pathname.startsWith('/m/lider')
+  const isLeaderFlow = isLeaderPath(pathname)
   const tabs = isLeaderFlow ? LEADER_TABS : USER_TABS
 
   return (
     <nav className="flex flex-row">
       {tabs.map((tab) => {
-        const isActive = pathname === tab.path
+        // Resolve o `:tenant` do padrão para comparar com o pathname concreto.
+        const target = withMobileToken(tab.path)
+        const isActive = pathname === target
         return (
           <button
             key={tab.path}
             type="button"
-            onClick={() => navigate(withMobileToken(tab.path))}
+            onClick={() => navigate(target)}
             className="flex-1 px-0.5 pb-[11px] pt-[10px] text-center text-[13px] font-bold transition-colors"
             style={{
               color: isActive ? '#1E558B' : '#93A0BF',

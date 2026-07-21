@@ -1,6 +1,7 @@
 import { Route, Navigate, useParams, useLocation } from 'react-router-dom'
 import { MobileLayout } from '../layouts/MobileLayout'
 import { MobileTokenRoute } from './MobileTokenRoute'
+import { MobileTenantInjector } from './MobileTenantInjector'
 import { PublicEventsPage } from '../../modules/public/events/PublicEventsPage'
 import { PublicEventDetailsPage } from '../../modules/public/events/PublicEventDetailsPage'
 import { MyEventsPage } from '../../modules/public/events/MyEventsPage'
@@ -12,6 +13,7 @@ import {
   LEADER_MOBILE_ROUTES,
   PUBLIC_ROUTES,
   LEADER_ROUTES,
+  stripTenant,
 } from './routePaths'
 
 /**
@@ -32,16 +34,18 @@ function LegacyRedirect({ to }: { to: string }) {
  * Rotas da área mobile (`/m/*`) sob o MobileLayout.
  *
  * DOIS FLUXOS separados pelo LINK (não por cargo/role):
- *  - Usuário comum: `/m/usuario/*`
- *  - Líder de comunidade: `/m/lider/*`
+ *  - Usuário comum: `/m/:tenant/usuario/*`
+ *  - Líder de comunidade: `/m/:tenant/lider/*`
  *
- * Todas exigem apenas token/sessão válido (`MobileTokenRoute`) — sem validação
- * de perfil. Rotas legadas redirecionam para as novas preservando o `?token=`.
+ * O tenant vive no PATH. Rotas canônicas exigem `:tenant` e passam pelo guard
+ * `MobileTokenRoute` (só token/sessão, nunca role). URLs mobile SEM tenant
+ * (`/m/usuario/*`, `/m/lider/*`, redirects legados) caem no `MobileTenantInjector`,
+ * que injeta o slug do tenant da sessão no path.
  */
 export function PublicRoutes() {
   return (
     <Route element={<MobileLayout />}>
-      {/* Guard único: só token/sessão, nunca role */}
+      {/* Guard único: só token/sessão, nunca role. Tenant no path (`:tenant`). */}
       <Route element={<MobileTokenRoute />}>
         {/* Fluxo de usuário comum */}
         <Route path={USER_MOBILE_ROUTES.events} element={<PublicEventsPage />} />
@@ -57,13 +61,19 @@ export function PublicRoutes() {
         <Route path={LEADER_MOBILE_ROUTES.myEvents} element={<MyEventsPage />} />
       </Route>
 
-      {/* Redirects de compatibilidade (fora do guard; preservam ?token=) */}
-      <Route path={PUBLIC_ROUTES.events} element={<LegacyRedirect to={USER_MOBILE_ROUTES.events} />} />
-      <Route path={PUBLIC_ROUTES.eventDetails} element={<LegacyRedirect to={USER_MOBILE_ROUTES.eventDetails} />} />
-      <Route path={PUBLIC_ROUTES.myEvents} element={<LegacyRedirect to={USER_MOBILE_ROUTES.myEvents} />} />
-      <Route path={LEADER_ROUTES.requestedEvents} element={<LegacyRedirect to={LEADER_MOBILE_ROUTES.requestedEvents} />} />
-      <Route path={LEADER_ROUTES.requestedEventDetails} element={<LegacyRedirect to={LEADER_MOBILE_ROUTES.requestedEventDetails} />} />
-      <Route path={LEADER_ROUTES.requestEvent} element={<LegacyRedirect to={LEADER_MOBILE_ROUTES.requestEvent} />} />
+      {/* Injetor de tenant: paths mobile SEM tenant → injeta o slug da sessão.
+          Cobre qualquer sub-path (splat) dos dois fluxos, preservando query. */}
+      <Route path="/m/usuario/*" element={<MobileTenantInjector />} />
+      <Route path="/m/lider/*" element={<MobileTenantInjector />} />
+
+      {/* Redirects de compatibilidade (legados sem prefixo → path sem tenant;
+          o injetor acima completa com o slug da sessão). Preservam `:id`/query. */}
+      <Route path={PUBLIC_ROUTES.events} element={<LegacyRedirect to={stripTenant(USER_MOBILE_ROUTES.events)} />} />
+      <Route path={PUBLIC_ROUTES.eventDetails} element={<LegacyRedirect to={stripTenant(USER_MOBILE_ROUTES.eventDetails)} />} />
+      <Route path={PUBLIC_ROUTES.myEvents} element={<LegacyRedirect to={stripTenant(USER_MOBILE_ROUTES.myEvents)} />} />
+      <Route path={LEADER_ROUTES.requestedEvents} element={<LegacyRedirect to={stripTenant(LEADER_MOBILE_ROUTES.requestedEvents)} />} />
+      <Route path={LEADER_ROUTES.requestedEventDetails} element={<LegacyRedirect to={stripTenant(LEADER_MOBILE_ROUTES.requestedEventDetails)} />} />
+      <Route path={LEADER_ROUTES.requestEvent} element={<LegacyRedirect to={stripTenant(LEADER_MOBILE_ROUTES.requestEvent)} />} />
     </Route>
   )
 }

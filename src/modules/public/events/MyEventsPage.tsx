@@ -5,7 +5,7 @@ import type { EventFullView } from '../../../features/events'
 import { useMyAttendances } from '../../../features/event-attendance'
 import { useCurrentUser } from '../../../features/auth'
 import { useMobileToken } from '../../../features/sasi-token'
-import { buildPath, USER_MOBILE_ROUTES, LEADER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
+import { buildPath, USER_MOBILE_ROUTES, LEADER_MOBILE_ROUTES, isLeaderPath } from '../../../app/routes/routePaths'
 import { EventCard } from './EventCard'
 import { EventsTabs } from './EventsTabs'
 import { EventsPanel } from './EventsPanel'
@@ -40,7 +40,7 @@ export function MyEventsPage() {
   const { pathname } = useLocation()
   const { withMobileToken } = useMobileToken()
   // Mantém o usuário no MESMO fluxo (líder ou usuário) ao abrir o detalhe.
-  const isLeaderFlow = pathname.startsWith('/m/lider')
+  const isLeaderFlow = isLeaderPath(pathname)
   const detailPattern = isLeaderFlow
     ? LEADER_MOBILE_ROUTES.eventDetails
     : USER_MOBILE_ROUTES.eventDetails

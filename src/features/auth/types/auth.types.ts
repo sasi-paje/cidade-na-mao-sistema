@@ -19,6 +19,10 @@ export interface CurrentUserContext {
   authUserId: string | null
   masterUserId: string | null
   tenantId: string | null
+  /** Slug do tenant da sessão (casa com o `:tenant` do path mobile e o `?tenant=` do web). */
+  tenantSlug: string | null
+  /** Nome do tenant da sessão (o tenant da URL também aceita o nome, como no web). */
+  tenantName: string | null
   role: UserRole | null
   isAdmin: boolean
   isLeader: boolean
@@ -39,6 +43,8 @@ export const LOADING_CONTEXT: CurrentUserContext = {
   authUserId: null,
   masterUserId: null,
   tenantId: null,
+  tenantSlug: null,
+  tenantName: null,
   role: null,
   isAdmin: false,
   isLeader: false,

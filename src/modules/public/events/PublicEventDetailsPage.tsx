@@ -5,7 +5,7 @@ import { useEventById } from '../../../features/events'
 import { useEventAttendance } from '../../../features/event-attendance'
 import { useCurrentUser } from '../../../features/auth'
 import { useMobileToken } from '../../../features/sasi-token'
-import { USER_MOBILE_ROUTES, LEADER_MOBILE_ROUTES } from '../../../app/routes/routePaths'
+import { USER_MOBILE_ROUTES, LEADER_MOBILE_ROUTES, isLeaderPath } from '../../../app/routes/routePaths'
 import { isPastEvent } from '../../../utils/eventDate'
 import { EventBanner, EventDateLine } from './eventVisuals'
 import { MobileDialog } from './MobileDialog'
@@ -24,7 +24,7 @@ export function PublicEventDetailsPage() {
 
   // Fluxo atual (líder ou usuário) — define para onde "Voltar" e o pós-confirmar
   // retornam, mantendo o usuário no mesmo fluxo.
-  const isLeaderFlow = pathname.startsWith('/m/lider')
+  const isLeaderFlow = isLeaderPath(pathname)
   const eventsPath = isLeaderFlow ? LEADER_MOBILE_ROUTES.events : USER_MOBILE_ROUTES.events
   // Fluxo líder não tem "Meus Eventos": após confirmar, volta à lista do líder.
   const afterConfirmPath = isLeaderFlow ? LEADER_MOBILE_ROUTES.events : USER_MOBILE_ROUTES.myEvents

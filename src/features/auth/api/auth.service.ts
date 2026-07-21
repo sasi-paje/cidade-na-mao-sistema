@@ -64,12 +64,28 @@ export async function getCurrentUserContext(): Promise<CurrentUserContext> {
       if (mu?.name) name = mu.name as string
     }
 
+    // Slug/nome do tenant da sessão — usados para casar com o `?tenant=` da URL
+    // (a RLS `tenant_select` só libera a própria linha: id = current_tenant_id()).
+    let tenantSlug: string | null = null
+    let tenantName: string | null = null
+    if (tenantId) {
+      const { data: tenant } = await supabase
+        .from('master_tenant')
+        .select('slug, name')
+        .eq('id', tenantId)
+        .maybeSingle()
+      tenantSlug = (tenant?.slug as string | undefined) ?? null
+      tenantName = (tenant?.name as string | undefined) ?? null
+    }
+
     const isAdmin = role === 'admin'
     const isLeader = role === 'community_leader'
     return {
       authUserId: authUser.id,
       masterUserId,
       tenantId,
+      tenantSlug,
+      tenantName,
       role,
       isAdmin,
       isLeader,

@@ -1,52 +1,56 @@
-import { useSearchParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 
 /**
- * useMobileToken / withMobileToken — helpers do FLUXO MOBILE (`/m/*`).
+ * useMobileToken / withMobileToken — helpers do FLUXO MOBILE (`/m/:tenant/*`).
  *
  * O token SASI serve só para IDENTIFICAR a pessoa e criar/recuperar a sessão
- * Supabase — não define cargo/role nem qual fluxo abrir (isso é o LINK). Estes
- * helpers preservam o `?token=` na navegação mobile quando ele está presente na
- * URL. Observação de segurança: o `SasiSessionBoundary` global captura o token
- * e o remove da URL logo após a troca por sessão (o token não fica exposto na
- * barra de endereço); a continuidade entre telas se dá pela sessão Supabase.
- * `withMobileToken` reanexa o token apenas enquanto ele existe na URL.
+ * Supabase — não define cargo/role nem qual fluxo abrir (isso é o LINK). O
+ * `SasiSessionBoundary` global captura o token e o remove da URL logo após a
+ * troca por sessão (o token não fica exposto na barra de endereço); a
+ * continuidade entre telas se dá pela sessão Supabase.
+ *
+ * O TENANT vive no PATH (`/m/:tenant/...`), não na query. Os padrões de rota
+ * (`USER_MOBILE_ROUTES`/`LEADER_MOBILE_ROUTES`) contêm o segmento `:tenant`;
+ * `withMobileToken` substitui esse `:tenant` pelo slug do tenant atual (lido do
+ * próprio path via `useParams`), de modo que a navegação entre telas preserva o
+ * tenant sem precisar reanexar nada na query.
  */
 
-/** Normaliza o token (vazio → null). */
-function normalizeToken(value: string | null | undefined): string | null {
-  const token = (value ?? '').trim()
-  return token === '' ? null : token
+/** Normaliza um slug de tenant (trim + lowercase). Vazio → null. */
+function normalizeTenant(value: string | null | undefined): string | null {
+  const slug = (value ?? '').trim().toLowerCase()
+  return slug === '' ? null : slug
 }
 
 /** Lê o token de uma query string (`?token=`), útil fora de componentes. */
 export function getTokenFromSearch(search: string): string | null {
-  return normalizeToken(new URLSearchParams(search).get('token'))
+  const token = (new URLSearchParams(search).get('token') ?? '').trim()
+  return token === '' ? null : token
 }
 
 /**
- * Anexa `?token=slug` a um path (preservando query existente). Sem token,
- * retorna o path inalterado. Usado para preservar o token na navegação mobile.
+ * Substitui o segmento `:tenant` de um path mobile pelo slug informado
+ * (preservando query/hash já existentes). Sem tenant, retorna o path inalterado
+ * — a rota `/m/:tenant/*` só casa com tenant presente, então isso é defensivo.
  */
-export function withMobileToken(path: string, token: string | null | undefined): string {
-  const value = normalizeToken(token)
-  if (!value) return path
-  const [base, hash] = path.split('#')
-  const sep = base.includes('?') ? '&' : '?'
-  const withQuery = `${base}${sep}token=${encodeURIComponent(value)}`
-  return hash ? `${withQuery}#${hash}` : withQuery
+export function withMobileToken(path: string, tenant: string | null | undefined): string {
+  const slug = normalizeTenant(tenant)
+  if (!slug) return path
+  return path.replace(':tenant', encodeURIComponent(slug))
 }
 
 /**
- * Hook: token atual do fluxo mobile (da URL). `token` é o valor normalizado
- * (ou null); `withMobileToken` preserva o `?token=` ao navegar entre telas.
+ * Hook: tenant atual do fluxo mobile (do PATH). `tenant` é o slug normalizado
+ * (ou null); `withMobileToken` substitui o `:tenant` do padrão de rota pelo slug
+ * atual, preservando o tenant ao navegar entre telas.
  */
 export function useMobileToken() {
-  const [searchParams] = useSearchParams()
-  const token = normalizeToken(searchParams.get('token'))
+  const params = useParams<{ tenant?: string }>()
+  const tenant = normalizeTenant(params.tenant)
   return {
-    /** Token da URL (normalizado) ou null. */
-    token,
-    /** Anexa `?token=` a um path, preservando o token na navegação. */
-    withMobileToken: (path: string) => withMobileToken(path, token),
+    /** Slug do tenant do path (normalizado) ou null. */
+    tenant,
+    /** Substitui `:tenant` no padrão de rota pelo slug do tenant atual. */
+    withMobileToken: (path: string) => withMobileToken(path, tenant),
   }
 }
